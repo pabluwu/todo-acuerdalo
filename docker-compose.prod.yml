@@ -1,0 +1,55 @@
+# Producción: imágenes publicadas en GHCR por GitHub Actions.
+# nginx del host termina TLS y hace proxy a los puertos locales:
+#   todo.acuerdalo.cl     -> 127.0.0.1:4101 (frontend)
+#   api-todo.acuerdalo.cl -> 127.0.0.1:4100 (backend)
+name: todo-acuerdalo
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: ghcr.io/pabluwu/todo-acuerdalo/backend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: 3001
+      UPLOAD_DIR: /app/uploads
+    ports:
+      - "127.0.0.1:4100:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  frontend:
+    image: ghcr.io/pabluwu/todo-acuerdalo/frontend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4101:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  uploads:
