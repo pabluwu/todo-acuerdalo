@@ -34,18 +34,18 @@ describe('detectEventChanges', () => {
 });
 
 describe('computeEventRecipients', () => {
-  it('une participantes y creador sin duplicados ni el autor', () => {
-    const r = computeEventRecipients([u('a'), u('b')], u('c'), 'a');
-    expect(r.map((x) => x.id).sort()).toEqual(['b', 'c']);
+  it('une participantes y creador sin duplicados, incluido el autor', () => {
+    const r = computeEventRecipients([u('a'), u('b'), u('c')], u('c'));
+    expect(r.map((x) => x.id).sort()).toEqual(['a', 'b', 'c']);
   });
 
   it('excluye inactivos y excluidos explícitos', () => {
-    const r = computeEventRecipients([u('a', false), u('b')], u('c'), 'x', ['c']);
+    const r = computeEventRecipients([u('a', false), u('b')], u('c'), ['c']);
     expect(r.map((x) => x.id)).toEqual(['b']);
   });
 
-  it('un autor creador no se notifica a sí mismo', () => {
-    expect(computeEventRecipients([], u('c'), 'c')).toEqual([]);
+  it('el creador recibe el aviso aunque sea quien hizo el cambio', () => {
+    expect(computeEventRecipients([], u('c')).map((x) => x.id)).toEqual(['c']);
   });
 });
 

@@ -102,19 +102,19 @@ export function newlyAdded(before: EventSnapshot, afterParticipants: User[]): Us
 
 /**
  * Destinatarios de un aviso: SOLO usuarios internos (participantes y creador),
- * activos, sin duplicados, sin el autor del cambio y sin los excluidos.
+ * activos, sin duplicados y sin los excluidos. Quien hizo el cambio también
+ * recibe el aviso si participa o es el creador.
  * Los contactos externos no entran nunca en esta función.
  */
 export function computeEventRecipients(
   participants: Person[],
   creator: Person | null,
-  actorId: string | null,
   excludeIds: string[] = [],
 ): Person[] {
   const map = new Map<string, Person>();
   for (const u of [...participants, ...(creator ? [creator] : [])]) {
     if (!u.isActive) continue;
-    if (u.id === actorId || excludeIds.includes(u.id)) continue;
+    if (excludeIds.includes(u.id)) continue;
     map.set(u.id, u);
   }
   return [...map.values()];

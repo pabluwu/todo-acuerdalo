@@ -79,18 +79,18 @@ export function newlyAssigned(before: TaskSnapshot, afterAssignees: User[]): Use
 
 /**
  * Destinatarios de un aviso de cambio: asignados + administradores activos,
- * sin duplicados, sin el autor del cambio y sin los usuarios excluidos.
+ * sin duplicados y sin los usuarios excluidos. Quien hizo el cambio también
+ * recibe el aviso si está involucrado (asignado o admin).
  */
 export function computeRecipients(
   assignees: Pick<User, 'id' | 'email' | 'name' | 'isActive'>[],
   admins: Pick<User, 'id' | 'email' | 'name' | 'isActive'>[],
-  actorId: string | null,
   excludeIds: string[] = [],
 ) {
   const map = new Map<string, Pick<User, 'id' | 'email' | 'name' | 'isActive'>>();
   for (const u of [...assignees, ...admins]) {
     if (!u.isActive) continue;
-    if (u.id === actorId || excludeIds.includes(u.id)) continue;
+    if (excludeIds.includes(u.id)) continue;
     map.set(u.id, u);
   }
   return [...map.values()];

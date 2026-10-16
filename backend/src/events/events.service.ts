@@ -38,6 +38,7 @@ export function notificationPayload(e: CalendarEvent) {
   return {
     id: e.id,
     title: e.title,
+    description: e.description ?? '',
     location: e.location ?? '',
     startAt: new Date(e.startAt).toISOString(),
     endAt: new Date(e.endAt).toISOString(),

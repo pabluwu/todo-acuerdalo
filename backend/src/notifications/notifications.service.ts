@@ -4,6 +4,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
+import { buildIcs, IcsMethod, parseAddress } from '../mail/ics';
 import { MailService } from '../mail/mail.service';
 import {
   activatedEmail, assignedEmail, changedEmail, dueEmail,
@@ -36,6 +37,7 @@ export interface TaskDueEvent {
 export interface EventInfo {
   id: string;
   title: string;
+  description?: string;
   location: string;
   startAt: string;
   endAt: string;
@@ -59,6 +61,8 @@ export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
   private appUrl: string;
   private timeZone: string;
+  private organizer: { name: string; email: string };
+  private uidDomain: string;
 
   constructor(
     private mail: MailService,
@@ -67,6 +71,32 @@ export class NotificationsService {
   ) {
     this.appUrl = config.get('APP_URL', 'http://localhost:3000');
     this.timeZone = config.get('APP_TIMEZONE', 'America/Santiago');
+    this.organizer = parseAddress(config.get('SMTP_FROM', ''), config.get('SMTP_USER') || 'no-reply@acuerdalo.local');
+    this.uidDomain = new URL(this.appUrl).hostname;
+  }
+
+  /** Invitación .ics del evento: solo usuarios internos como asistentes, nunca externos. */
+  private invite(e: EventInfo, method: IcsMethod) {
+    const attendees = new Map<string, { name: string; email: string }>();
+    for (const u of [...e.participants, ...(e.createdBy ? [e.createdBy] : [])]) {
+      if (u.isActive) attendees.set(u.id, { name: u.name, email: u.email });
+    }
+    const content = buildIcs(
+      {
+        uid: `${e.id}@${this.uidDomain}`,
+        title: e.title,
+        description: e.description,
+        location: e.location,
+        startAt: e.startAt,
+        endAt: e.endAt,
+        allDay: e.allDay,
+        url: `${this.appUrl.replace(/\/$/, '')}/calendar?event=${e.id}`,
+        organizer: this.organizer,
+        attendees: [...attendees.values()],
+      },
+      method,
+    );
+    return { method, content };
   }
 
   @OnEvent('task.assigned', { async: true })
@@ -74,7 +104,7 @@ export class NotificationsService {
     try {
       const { subject, html } = assignedEmail(this.appUrl, e.task, e.actor.name);
       for (const u of e.newAssignees) {
-        if (u.id === e.actor.id || !u.isActive) continue;
+        if (!u.isActive) continue;
         await this.mail.send(u.email, subject, html);
       }
     } catch (err) {
@@ -86,7 +116,7 @@ export class NotificationsService {
   async onChanged(e: TaskChangedEvent) {
     try {
       const admins = await this.users.find({ where: { role: 'admin', isActive: true } });
-      const recipients = computeRecipients(e.task.assignees, admins, e.actor.id, e.excludeUserIds ?? []);
+      const recipients = computeRecipients(e.task.assignees, admins, e.excludeUserIds ?? []);
       const { subject, html } = changedEmail(this.appUrl, e.task, e.actor.name, e.changes);
       for (const u of recipients) await this.mail.send(u.email, subject, html);
     } catch (err) {
@@ -120,9 +150,10 @@ export class NotificationsService {
   async onEventInvited(e: EventInvitedEvent) {
     try {
       const { subject, html } = eventInvitedEmail(this.appUrl, this.mailInfo(e.event), e.actor.name);
+      const invite = this.invite(e.event, 'REQUEST');
       for (const u of e.newParticipants) {
-        if (u.id === e.actor.id || !u.isActive) continue;
-        await this.mail.send(u.email, subject, html);
+        if (!u.isActive) continue;
+        await this.mail.send(u.email, subject, html, invite);
       }
     } catch (err) {
       this.logger.error(`event.invited: ${(err as Error).message}`);
@@ -134,9 +165,10 @@ export class NotificationsService {
     try {
       const changes = detectEventChanges(e.before, snapshotFromPayload(e.event), this.timeZone);
       if (changes.length === 0) return;
-      const recipients = computeEventRecipients(e.event.participants, e.event.createdBy, e.actor.id, e.excludeUserIds ?? []);
+      const recipients = computeEventRecipients(e.event.participants, e.event.createdBy, e.excludeUserIds ?? []);
       const { subject, html } = eventChangedEmail(this.appUrl, e.event, e.actor.name, changes);
-      for (const u of recipients) await this.mail.send(u.email, subject, html);
+      const invite = this.invite(e.event, 'REQUEST');
+      for (const u of recipients) await this.mail.send(u.email, subject, html, invite);
     } catch (err) {
       this.logger.error(`event.changed: ${(err as Error).message}`);
     }
@@ -145,9 +177,10 @@ export class NotificationsService {
   @OnEvent('event.cancelled', { async: true })
   async onEventCancelled(e: EventCancelledEvent) {
     try {
-      const recipients = computeEventRecipients(e.event.participants, e.event.createdBy, e.actor.id);
+      const recipients = computeEventRecipients(e.event.participants, e.event.createdBy);
       const { subject, html } = eventCancelledEmail(this.appUrl, this.mailInfo(e.event), e.actor.name);
-      for (const u of recipients) await this.mail.send(u.email, subject, html);
+      const invite = this.invite(e.event, 'CANCEL');
+      for (const u of recipients) await this.mail.send(u.email, subject, html, invite);
     } catch (err) {
       this.logger.error(`event.cancelled: ${(err as Error).message}`);
     }
@@ -156,9 +189,10 @@ export class NotificationsService {
   @OnEvent('event.reminder', { async: true })
   async onEventReminder(e: EventReminderEvent) {
     try {
-      const recipients = computeEventRecipients(e.event.participants, e.event.createdBy, null);
+      const recipients = computeEventRecipients(e.event.participants, e.event.createdBy);
       const { subject, html } = eventReminderEmail(this.appUrl, this.mailInfo(e.event), reminderLabel(e.minutes));
-      for (const u of recipients) await this.mail.send(u.email, subject, html);
+      const invite = this.invite(e.event, 'REQUEST');
+      for (const u of recipients) await this.mail.send(u.email, subject, html, invite);
     } catch (err) {
       this.logger.error(`event.reminder: ${(err as Error).message}`);
     }

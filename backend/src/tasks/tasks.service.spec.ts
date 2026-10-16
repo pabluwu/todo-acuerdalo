@@ -32,18 +32,18 @@ describe('detectChanges', () => {
 });
 
 describe('computeRecipients', () => {
-  it('une asignados y admins sin duplicados y sin el autor', () => {
-    const r = computeRecipients([u('a'), u('b')], [u('b'), u('admin')], 'a');
-    expect(r.map((x) => x.id).sort()).toEqual(['admin', 'b']);
+  it('une asignados y admins sin duplicados, incluido el autor', () => {
+    const r = computeRecipients([u('a'), u('b')], [u('b'), u('admin')]);
+    expect(r.map((x) => x.id).sort()).toEqual(['a', 'admin', 'b']);
   });
 
   it('excluye usuarios inactivos y los excluidos explícitamente', () => {
-    const r = computeRecipients([u('a', false), u('b')], [u('admin')], 'x', ['admin']);
+    const r = computeRecipients([u('a', false), u('b')], [u('admin')], ['admin']);
     expect(r.map((x) => x.id)).toEqual(['b']);
   });
 
-  it('no notifica al autor aunque sea admin', () => {
-    expect(computeRecipients([], [u('admin')], 'admin')).toEqual([]);
+  it('notifica al admin aunque sea quien hizo el cambio', () => {
+    expect(computeRecipients([], [u('admin')]).map((x) => x.id)).toEqual(['admin']);
   });
 });
 
