@@ -1,3 +1,5 @@
+import { ChevronsDown, ChevronsUp, Circle, CircleCheck, CircleDashed, Equal, type LucideIcon } from 'lucide-react';
+
 export type Role = 'admin' | 'user';
 export type TaskStatus = 'not_started' | 'in_progress' | 'completed';
 export type TaskPriority = 'high' | 'medium' | 'low';
@@ -100,10 +102,11 @@ export interface CalendarEvent {
   updatedAt: string;
 }
 
-export const STATUSES: { id: TaskStatus; label: string; dot: string }[] = [
-  { id: 'not_started', label: 'Sin iniciar', dot: 'bg-zinc-400' },
-  { id: 'in_progress', label: 'En proceso', dot: 'bg-accent' },
-  { id: 'completed', label: 'Completada', dot: 'bg-emerald-500' },
+/** `tint` pinta el fondo de la columna; `fg` el ícono y la insignia de estado. */
+export const STATUSES: { id: TaskStatus; label: string; dot: string; icon: LucideIcon; tint: string; fg: string; badge: string }[] = [
+  { id: 'not_started', label: 'Sin iniciar', dot: 'bg-zinc-400', icon: Circle, tint: 'bg-stone-100/80', fg: 'text-zinc-500', badge: 'bg-white text-zinc-600 ring-zinc-200' },
+  { id: 'in_progress', label: 'En proceso', dot: 'bg-accent', icon: CircleDashed, tint: 'bg-indigo-50/80', fg: 'text-accent', badge: 'bg-white text-indigo-700 ring-indigo-200' },
+  { id: 'completed', label: 'Completada', dot: 'bg-emerald-500', icon: CircleCheck, tint: 'bg-emerald-50/80', fg: 'text-emerald-600', badge: 'bg-white text-emerald-700 ring-emerald-200' },
 ];
 
 export const ACTION_LABELS: Record<string, string> = {
@@ -146,8 +149,11 @@ export const ENTITY_LABELS: Record<string, string> = {
   http: 'HTTP',
 };
 
-export const PRIORITIES: { id: TaskPriority; label: string; dot: string }[] = [
-  { id: 'high', label: 'Alta', dot: 'bg-red-500' },
-  { id: 'medium', label: 'Media', dot: 'bg-amber-400' },
-  { id: 'low', label: 'Baja', dot: 'bg-zinc-300' },
+export const PRIORITIES: { id: TaskPriority; label: string; dot: string; icon: LucideIcon; fg: string; soft: string }[] = [
+  { id: 'high', label: 'Alta', dot: 'bg-red-500', icon: ChevronsUp, fg: 'text-red-600', soft: 'bg-red-50' },
+  { id: 'medium', label: 'Media', dot: 'bg-amber-400', icon: Equal, fg: 'text-amber-600', soft: 'bg-amber-50' },
+  { id: 'low', label: 'Baja', dot: 'bg-zinc-300', icon: ChevronsDown, fg: 'text-zinc-500', soft: 'bg-zinc-100' },
 ];
+
+/** Orden para ordenar por prioridad. */
+export const PRIORITY_RANK: Record<TaskPriority, number> = { high: 0, medium: 1, low: 2 };

@@ -1,0 +1,490 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-17T03:32:48.547973+00:00",
+  "title": "Design System: Acuérdalo",
+  "extensions": {
+    "colorMeta": {
+      "indigo-acuerdalo": {
+        "role": "primary",
+        "displayName": "Índigo Acuérdalo",
+        "tonalRamp": [
+          "#1e1b4b",
+          "#312e81",
+          "#3730a3",
+          "#4338ca",
+          "#4f46e5",
+          "#818cf8",
+          "#c7d2fe",
+          "#eef2ff"
+        ]
+      },
+      "indigo-acuerdalo-deep": {
+        "role": "primary",
+        "displayName": "Índigo profundo",
+        "tonalRamp": [
+          "#1e1b4b",
+          "#312e81",
+          "#3730a3",
+          "#4338ca",
+          "#4f46e5",
+          "#818cf8",
+          "#c7d2fe",
+          "#eef2ff"
+        ]
+      },
+      "indigo-mist": {
+        "role": "primary",
+        "displayName": "Niebla índigo",
+        "tonalRamp": [
+          "#1e1b4b",
+          "#312e81",
+          "#3730a3",
+          "#4338ca",
+          "#4f46e5",
+          "#818cf8",
+          "#c7d2fe",
+          "#eef2ff"
+        ]
+      },
+      "indigo-ink": {
+        "role": "primary",
+        "displayName": "Tinta índigo",
+        "tonalRamp": [
+          "#1e1b4b",
+          "#312e81",
+          "#3730a3",
+          "#4338ca",
+          "#4f46e5",
+          "#818cf8",
+          "#c7d2fe",
+          "#eef2ff"
+        ]
+      },
+      "lino-calido": {
+        "role": "neutral",
+        "displayName": "Lino Cálido",
+        "tonalRamp": [
+          "#1c1917",
+          "#292524",
+          "#44403c",
+          "#78716c",
+          "#a8a29e",
+          "#e7e5e4",
+          "#f5f5f4",
+          "#fafaf9"
+        ]
+      },
+      "stone-wash": {
+        "role": "neutral",
+        "displayName": "Piedra lavada",
+        "tonalRamp": [
+          "#1c1917",
+          "#292524",
+          "#44403c",
+          "#78716c",
+          "#a8a29e",
+          "#e7e5e4",
+          "#f5f5f4",
+          "#fafaf9"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Papel",
+        "tonalRamp": [
+          "#1c1917",
+          "#292524",
+          "#44403c",
+          "#78716c",
+          "#a8a29e",
+          "#e7e5e4",
+          "#f5f5f4",
+          "#fafaf9"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Tinta",
+        "tonalRamp": [
+          "#18181b",
+          "#27272a",
+          "#3f3f46",
+          "#52525b",
+          "#71717a",
+          "#d4d4d8",
+          "#e4e4e7",
+          "#f4f4f5"
+        ]
+      },
+      "ink-soft": {
+        "role": "neutral",
+        "displayName": "Tinta suave",
+        "tonalRamp": [
+          "#18181b",
+          "#27272a",
+          "#3f3f46",
+          "#52525b",
+          "#71717a",
+          "#d4d4d8",
+          "#e4e4e7",
+          "#f4f4f5"
+        ]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Tinta tenue",
+        "tonalRamp": [
+          "#18181b",
+          "#27272a",
+          "#3f3f46",
+          "#52525b",
+          "#71717a",
+          "#d4d4d8",
+          "#e4e4e7",
+          "#f4f4f5"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hilo",
+        "tonalRamp": [
+          "#18181b",
+          "#27272a",
+          "#3f3f46",
+          "#52525b",
+          "#71717a",
+          "#d4d4d8",
+          "#e4e4e7",
+          "#f4f4f5"
+        ]
+      },
+      "hairline-faint": {
+        "role": "neutral",
+        "displayName": "Hilo tenue",
+        "tonalRamp": [
+          "#18181b",
+          "#27272a",
+          "#3f3f46",
+          "#52525b",
+          "#71717a",
+          "#d4d4d8",
+          "#e4e4e7",
+          "#f4f4f5"
+        ]
+      },
+      "status-progress-tint": {
+        "role": "semantic",
+        "displayName": "Tinte en proceso",
+        "tonalRamp": [
+          "#1e1b4b",
+          "#312e81",
+          "#3730a3",
+          "#4338ca",
+          "#4f46e5",
+          "#818cf8",
+          "#c7d2fe",
+          "#eef2ff"
+        ]
+      },
+      "status-done": {
+        "role": "semantic",
+        "displayName": "Verde completada",
+        "tonalRamp": [
+          "#022c22",
+          "#064e3b",
+          "#065f46",
+          "#047857",
+          "#059669",
+          "#34d399",
+          "#a7f3d0",
+          "#ecfdf5"
+        ]
+      },
+      "status-done-tint": {
+        "role": "semantic",
+        "displayName": "Tinte completada",
+        "tonalRamp": [
+          "#022c22",
+          "#064e3b",
+          "#065f46",
+          "#047857",
+          "#059669",
+          "#34d399",
+          "#a7f3d0",
+          "#ecfdf5"
+        ]
+      },
+      "priority-high": {
+        "role": "semantic",
+        "displayName": "Prioridad alta",
+        "tonalRamp": [
+          "#450a0a",
+          "#7f1d1d",
+          "#991b1b",
+          "#b91c1c",
+          "#dc2626",
+          "#f87171",
+          "#fecaca",
+          "#fef2f2"
+        ]
+      },
+      "priority-medium": {
+        "role": "semantic",
+        "displayName": "Prioridad media",
+        "tonalRamp": [
+          "#451a03",
+          "#78350f",
+          "#92400e",
+          "#b45309",
+          "#d97706",
+          "#fbbf24",
+          "#fde68a",
+          "#fffbeb"
+        ]
+      },
+      "overdue": {
+        "role": "semantic",
+        "displayName": "Vencida",
+        "tonalRamp": [
+          "#450a0a",
+          "#7f1d1d",
+          "#991b1b",
+          "#b91c1c",
+          "#dc2626",
+          "#f87171",
+          "#fecaca",
+          "#fef2f2"
+        ]
+      },
+      "overdue-tint": {
+        "role": "semantic",
+        "displayName": "Tinte vencida",
+        "tonalRamp": [
+          "#450a0a",
+          "#7f1d1d",
+          "#991b1b",
+          "#b91c1c",
+          "#dc2626",
+          "#f87171",
+          "#fecaca",
+          "#fef2f2"
+        ]
+      },
+      "due-soon": {
+        "role": "semantic",
+        "displayName": "Vence pronto",
+        "tonalRamp": [
+          "#451a03",
+          "#78350f",
+          "#92400e",
+          "#b45309",
+          "#d97706",
+          "#fbbf24",
+          "#fde68a",
+          "#fffbeb"
+        ]
+      },
+      "due-soon-tint": {
+        "role": "semantic",
+        "displayName": "Tinte vence pronto",
+        "tonalRamp": [
+          "#451a03",
+          "#78350f",
+          "#92400e",
+          "#b45309",
+          "#d97706",
+          "#fbbf24",
+          "#fde68a",
+          "#fffbeb"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Títulos de página (Tareas, mes del calendario)."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Títulos de diálogos y paneles."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Texto general y controles."
+      },
+      "body-strong": {
+        "displayName": "Body strong",
+        "purpose": "Títulos de tareas y eventos."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Etiquetas de sección en mayúsculas."
+      },
+      "meta": {
+        "displayName": "Meta",
+        "purpose": "Fechas, badges y contadores en tarjetas."
+      }
+    },
+    "shadows": [
+      {
+        "name": "paper-rest",
+        "value": "0 1px 2px rgb(0 0 0 / 0.04)",
+        "purpose": "Tarjetas, listas y pills en reposo."
+      },
+      {
+        "name": "paper-lift",
+        "value": "0 4px 12px rgb(0 0 0 / 0.06), 0 1px 2px rgb(0 0 0 / 0.04)",
+        "purpose": "Tarjeta interactiva en hover."
+      },
+      {
+        "name": "popover",
+        "value": "0 8px 24px rgb(0 0 0 / 0.08), 0 1px 3px rgb(0 0 0 / 0.06)",
+        "purpose": "Menús y popovers."
+      },
+      {
+        "name": "fab",
+        "value": "0 8px 20px rgb(79 70 229 / 0.35), 0 2px 6px rgb(0 0 0 / 0.12)",
+        "purpose": "Solo el botón flotante."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-expo",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Entrada de diálogos, paneles, hojas y popovers (140–220ms)."
+      },
+      {
+        "name": "state",
+        "value": "150ms",
+        "purpose": "Cambios de color, borde y sombra en hover/foco."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "La única acción principal por pantalla.",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg> Nueva tarea</button>",
+      "css": "font-family:Inter,system-ui,sans-serif;.ds-btn-primary{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border:1px solid transparent;border-radius:6px;background:#4f46e5;color:#fff;font:500 14px/1 Inter,system-ui,sans-serif;cursor:pointer;transition:background-color 150ms}.ds-btn-primary:hover{background:#4338ca}.ds-btn-primary:focus-visible{outline:none;box-shadow:0 0 0 1px #fff,0 0 0 3px rgb(79 70 229/.6)}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Acciones secundarias sobre papel.",
+      "html": "<button class=\"ds-btn\">Limpiar filtros</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border:1px solid #e4e4e7;border-radius:6px;background:#fff;color:#3f3f46;font:400 14px/1 Inter,system-ui,sans-serif;cursor:pointer;transition:background-color 150ms}.ds-btn:hover{background:#fafafa}.ds-btn:focus-visible{outline:none;box-shadow:0 0 0 1px #fff,0 0 0 3px rgb(79 70 229/.6)}"
+    },
+    {
+      "name": "Filter Pill",
+      "kind": "chip",
+      "refersTo": "filter-pill",
+      "description": "Filtro con ícono; activo muestra el valor y una × para quitarlo.",
+      "html": "<div class=\"ds-pills\"><button class=\"ds-pill\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.33 2q2 0 3.67-.8a1 1 0 0 1 1 .9V15a1 1 0 0 1-.4.8A6 6 0 0 1 16 17c-3 0-5-2-8-2a6 6 0 0 0-4 1.53\"/></svg> Prioridad</button><span class=\"ds-pill ds-pill-on\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.33 2q2 0 3.67-.8a1 1 0 0 1 1 .9V15a1 1 0 0 1-.4.8A6 6 0 0 1 16 17c-3 0-5-2-8-2a6 6 0 0 0-4 1.53\"/></svg> Alta <button class=\"ds-pill-x\" aria-label=\"Quitar filtro\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/></svg></button></span></div>",
+      "css": ".ds-pills{display:flex;gap:8px;flex-wrap:wrap}.ds-pill{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid #e4e4e7;border-radius:9999px;background:#fff;color:#3f3f46;font:400 14px/1 Inter,system-ui,sans-serif;box-shadow:0 1px 2px rgb(0 0 0/.04);cursor:pointer;transition:background-color 150ms,border-color 150ms}.ds-pill svg{color:#71717a}.ds-pill:hover{border-color:#d4d4d8;background:#fafafa}.ds-pill-on{border-color:#c7d2fe;background:#eef2ff;color:#3730a3;padding-right:4px}.ds-pill-on svg{color:#4f46e5}.ds-pill-on:hover{background:#e0e7ff}.ds-pill-x{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border:0;border-radius:9999px;background:transparent;color:inherit;cursor:pointer}.ds-pill-x:hover{background:rgb(199 210 254/.6)}.ds-pill:focus-visible,.ds-pill-x:focus-visible{outline:none;box-shadow:0 0 0 3px rgb(79 70 229/.4)}"
+    },
+    {
+      "name": "Task Card",
+      "kind": "card",
+      "refersTo": "task-card",
+      "description": "Tarjeta de tarea: prioridad en cuadrito tintado, título, meta y avatares.",
+      "html": "<div class=\"ds-card\" tabindex=\"0\"><div class=\"ds-card-top\"><span class=\"ds-prio\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.25\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m17 11-5-5-5 5\"/><path d=\"m17 18-5-5-5 5\"/></svg></span><p class=\"ds-card-title\">Preparar Reels #1</p></div><div class=\"ds-card-meta\"><span class=\"ds-badge\">Interna</span><span class=\"ds-due\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" aria-hidden=\"true\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M16 2v4M8 2v4M3 10h18\"/></svg> 17 oct · Vence pronto</span><span class=\"ds-av\">BD</span></div></div>",
+      "css": ".ds-card{max-width:320px;padding:14px;border:1px solid rgb(228 228 231/.8);border-radius:8px;background:#fff;box-shadow:0 1px 2px rgb(0 0 0/.04);font-family:Inter,system-ui,sans-serif;cursor:pointer;transition:box-shadow 150ms,border-color 150ms}.ds-card:hover{border-color:#d4d4d8;box-shadow:0 4px 12px rgb(0 0 0/.06),0 1px 2px rgb(0 0 0/.04)}.ds-card:focus-visible{outline:none;box-shadow:0 0 0 3px rgb(79 70 229/.5)}.ds-card-top{display:flex;gap:8px;align-items:flex-start}.ds-prio{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex-shrink:0;border-radius:6px;background:#fef2f2;color:#dc2626}.ds-card-title{margin:2px 0 0;font-size:14px;font-weight:500;color:#18181b;line-height:1.375}.ds-card-meta{display:flex;align-items:center;gap:6px;margin-top:12px;font-size:11px;font-variant-numeric:tabular-nums}.ds-badge{padding:0 6px;border-radius:4px;background:#f5f5f4;color:#52525b;line-height:20px}.ds-due{display:inline-flex;align-items:center;gap:4px;padding:0 4px;border-radius:4px;background:#fffbeb;color:#92400e;font-weight:500;line-height:20px}.ds-due svg{width:12px;height:12px}.ds-av{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:9999px;background:#fffbeb;color:#78350f;font-size:10px;font-weight:600;box-shadow:0 0 0 2px #fff}"
+    },
+    {
+      "name": "Navigation",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Nav fija con íconos; activo en niebla índigo.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-i ds-nav-on\" href=\"#\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"9\" rx=\"1\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"5\" rx=\"1\"/><rect x=\"14\" y=\"12\" width=\"7\" height=\"9\" rx=\"1\"/><rect x=\"3\" y=\"16\" width=\"7\" height=\"5\" rx=\"1\"/></svg> Tablero</a><a class=\"ds-nav-i\" href=\"#\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" aria-hidden=\"true\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M16 2v4M8 2v4M3 10h18\"/></svg> Calendario</a></nav>",
+      "css": ".ds-nav{display:flex;gap:4px;padding:10px 16px;background:rgb(255 255 255/.9);border-bottom:1px solid rgb(228 228 231/.8)}.ds-nav-i{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:8px;color:#52525b;font:400 14px/1 Inter,system-ui,sans-serif;text-decoration:none;transition:background-color 150ms,color 150ms}.ds-nav-i:hover{background:#f4f4f5;color:#18181b}.ds-nav-on{background:#eef2ff;color:#312e81;font-weight:500}.ds-nav-on svg{color:#4f46e5}.ds-nav-on:hover{background:#eef2ff;color:#312e81}.ds-nav-i:focus-visible{outline:none;box-shadow:0 0 0 3px rgb(79 70 229/.5)}"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "custom",
+      "description": "Cambia Tablero/Lista y Mes/Semana/Día.",
+      "html": "<div class=\"ds-seg\" role=\"group\"><button aria-pressed=\"true\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"9\" rx=\"1\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"5\" rx=\"1\"/><rect x=\"14\" y=\"12\" width=\"7\" height=\"9\" rx=\"1\"/><rect x=\"3\" y=\"16\" width=\"7\" height=\"5\" rx=\"1\"/></svg> Tablero</button><button aria-pressed=\"false\">Lista</button></div>",
+      "css": ".ds-seg{display:inline-flex;gap:2px;padding:2px;border-radius:8px;background:#f4f4f5}.ds-seg button{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 14px;border:0;border-radius:6px;background:transparent;color:#52525b;font:400 14px/1 Inter,system-ui,sans-serif;cursor:pointer;transition:background-color 150ms,color 150ms}.ds-seg button:hover{color:#18181b}.ds-seg button[aria-pressed=true]{background:#fff;color:#18181b;font-weight:500;box-shadow:0 1px 2px rgb(0 0 0/.08),0 0 0 1px #e4e4e7}.ds-seg button[aria-pressed=true] svg{color:#4f46e5}.ds-seg button:focus-visible{outline:none;box-shadow:0 0 0 3px rgb(79 70 229/.5)}"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo sobre papel con anillo índigo al foco.",
+      "html": "<input class=\"ds-input\" placeholder=\"Título de la tarea\">",
+      "css": ".ds-input{height:36px;width:260px;padding:0 12px;border:1px solid #e4e4e7;border-radius:6px;background:#fff;color:#18181b;font:400 14px Inter,system-ui,sans-serif;outline:none;transition:border-color 150ms,box-shadow 150ms}.ds-input::placeholder{color:#71717a}.ds-input:focus{border-color:#4f46e5;box-shadow:0 0 0 2px rgb(79 70 229/.2)}"
+    },
+    {
+      "name": "Floating Action Button",
+      "kind": "button",
+      "refersTo": "fab",
+      "description": "Crear en móvil (tareas o eventos).",
+      "html": "<button class=\"ds-fab\" aria-label=\"Nueva tarea\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg></button>",
+      "css": ".ds-fab{display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border:0;border-radius:9999px;background:#4f46e5;color:#fff;box-shadow:0 8px 20px rgb(79 70 229/.35),0 2px 6px rgb(0 0 0/.12);cursor:pointer;transition:transform 150ms}.ds-fab:active{transform:scale(.95)}.ds-fab:focus-visible{outline:none;box-shadow:0 0 0 3px #fff,0 0 0 5px rgb(79 70 229/.6)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "La libreta del equipo",
+    "overview": "**Creative North Star: \"La libreta del equipo\"**\n\nAcuérdalo should feel like a notebook the whole team shares. The paper is warm and calm (Lino Cálido), the ink is a single indigo, and soft color tabs mark what state each thing is in. It is an Operate tool for a small agency team, so the notebook organizes work rather than decorating it. Every surface answers \"what's pending, what's overdue, what's coming up\" before it adds any personality.\n\nThe character is **friendly and precise**. Corners are soft, filters are rounded pills, and shadows are barely there. Nothing raises its voice except the primary action and anything that has gone overdue. The warmth comes from small, repeated decisions: avatars with a stable color per person, tinted columns by status, a drawn icon next to every label, and empty states that invite action instead of leaving a gap.\n\nDensity is medium. Desktop is for planning (kanban, week view), the phone is for acting (list, agenda, floating button). The system gets simpler on mobile; it doesn't just shrink.",
+    "keyCharacteristics": [
+      "Warm stone background with white paper surfaces and a single indigo accent.",
+      "Color carries meaning (status, priority, urgency, person), never decoration.",
+      "One icon family (lucide, 16px, 1.5 stroke) next to every label in navigation, filters and states.",
+      "Pills and segmented controls for filtering and switching views; avatars with a color per person.",
+      "Inter at small sizes, tabular numerals for dates and counters."
+    ],
+    "rules": [
+      {
+        "name": "The One Ink Rule",
+        "body": "Indigo is the only brand color. If an element is indigo, it is either the primary action or something active or current. It is never decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Never Color Alone Rule",
+        "body": "Every status, priority and urgency is carried by color *and* an icon or text (\"Vencida\", \"Vence pronto\", a status icon). Color reinforces the meaning; it doesn't replace it.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Every date, time and counter uses `tabular-nums`.",
+        "section": "typography"
+      },
+      {
+        "name": "The Paper on Linen Rule",
+        "body": "Hierarchy is resolved with tone (paper on linen, tinted columns) before reaching for a shadow. A shadow appears only on hover, on floating layers, or on the FAB.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do put a lucide icon (16px, 1.5 stroke) next to every navigation label, filter and status.",
+      "Do pair every color with an icon or text (the Never Color Alone Rule).",
+      "Do use `tabular-nums` on dates, times and counters.",
+      "Do give every list or board an empty state with an action, never a bare \"No hay datos\".",
+      "Do simplify on mobile: list instead of kanban, agenda instead of time grid, a floating button for creating, and bottom sheets for choosing.",
+      "Do keep the copy in direct Spanish addressed as *tú*, with controls that name their action."
+    ],
+    "donts": [
+      "Don't add a second accent color or use indigo as decoration (the One Ink Rule).",
+      "Don't use a colored `border-left` thicker than 1px on cards or list rows. Mark color with a dot or a tinted square.",
+      "Don't use emoji or Unicode glyphs in place of icons.",
+      "Don't apply heavy or hard-offset shadows. Depth is tonal first (the Paper on Linen Rule).",
+      "Don't go back to a cold gray background (`zinc-50`) for the page. The base is Lino Cálido."
+    ]
+  }
+}

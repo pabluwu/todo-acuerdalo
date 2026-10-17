@@ -1,15 +1,16 @@
 const BOARD_GHOSTS = [2, 3, 1];
+const COLUMN_TINTS = ['bg-stone-100/80', 'bg-indigo-50/80', 'bg-emerald-50/80'];
 
 export function BoardSkeleton() {
   return (
-    <div aria-hidden className="flex snap-x gap-6 overflow-hidden md:grid md:grid-cols-3">
+    <div aria-hidden className="grid grid-cols-3 items-start gap-4 lg:gap-5">
       {BOARD_GHOSTS.map((n, c) => (
-        <div key={c} className="w-[85vw] shrink-0 md:w-auto">
-          <div className="mb-3 flex items-center gap-2 px-1">
-            <div className="skeleton h-2 w-2 rounded-full" />
+        <div key={c} className={`rounded-2xl p-2 ${COLUMN_TINTS[c]}`}>
+          <div className="flex items-center gap-2 px-2 pb-3 pt-1.5">
+            <div className="skeleton h-4 w-4 rounded-full" />
             <div className="skeleton h-4 w-24" />
           </div>
-          <div className="space-y-2.5 rounded-xl bg-zinc-100/60 p-2">
+          <div className="space-y-2">
             {Array.from({ length: n }, (_, i) => (
               <div key={i} className="card-surface space-y-3 p-3.5">
                 <div className="skeleton h-4 w-4/5" />
@@ -20,6 +21,49 @@ export function BoardSkeleton() {
               </div>
             ))}
           </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function ListSkeleton() {
+  return (
+    <div aria-hidden className="space-y-4">
+      {[3, 2].map((n, g) => (
+        <div key={g} className="card-surface overflow-hidden">
+          <div className={`flex items-center gap-2 px-4 py-3 ${COLUMN_TINTS[g]}`}>
+            <div className="skeleton h-4 w-4 rounded-full" />
+            <div className="skeleton h-4 w-24" />
+          </div>
+          <div className="divide-y divide-zinc-100">
+            {Array.from({ length: n }, (_, i) => (
+              <div key={i} className="flex items-center gap-3 px-4 py-3.5">
+                <div className="skeleton h-5 w-5 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <div className="skeleton h-4 w-3/5" />
+                  <div className="skeleton h-3 w-24 md:hidden" />
+                </div>
+                <div className="skeleton h-6 w-6 rounded-full" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function AgendaSkeleton() {
+  return (
+    <div aria-hidden className="space-y-4">
+      <div className="grid grid-cols-7 gap-1">
+        {Array.from({ length: 7 }, (_, i) => <div key={i} className="skeleton h-14" />)}
+      </div>
+      {[2, 1].map((n, d) => (
+        <div key={d} className="space-y-2">
+          <div className="skeleton h-4 w-32" />
+          {Array.from({ length: n }, (_, i) => <div key={i} className="skeleton h-14 w-full" />)}
         </div>
       ))}
     </div>

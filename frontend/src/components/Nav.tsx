@@ -1,53 +1,123 @@
 'use client';
 
-import { LogOut } from 'lucide-react';
+import {
+  CalendarDays, ChevronDown, Contact, LayoutDashboard, LogOut, ScrollText, Shield, Tags, Users, type LucideIcon,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { icon } from '@/lib/icons';
+import { useDismiss } from '@/lib/useDismiss';
 import { Avatar } from './Avatar';
 import { Logo } from './Logo';
 
-function UserMenu() {
-  const { user, logout } = useAuth();
+interface NavItem { href: string; label: string; icon: LucideIcon }
+
+const MAIN: NavItem[] = [
+  { href: '/', label: 'Tablero', icon: LayoutDashboard },
+  { href: '/calendar', label: 'Calendario', icon: CalendarDays },
+];
+const ADMIN: NavItem[] = [
+  { href: '/admin/users', label: 'Usuarios', icon: Users },
+  { href: '/admin/task-types', label: 'Tipos de tarea', icon: Tags },
+  { href: '/admin/contacts', label: 'Contactos', icon: Contact },
+  { href: '/admin/logs', label: 'Registro', icon: ScrollText },
+];
+
+const isActive = (path: string, href: string) => (href === '/' ? path === '/' : path.startsWith(href));
+
+/** Menú desplegable compartido por "Administración" y el menú de cuenta. */
+function useMenu() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const btn = useRef<HTMLButtonElement>(null);
+  const close = useCallback(() => setOpen(false), []);
+  useDismiss(ref, open, close, btn);
+  return { open, setOpen, close, ref, btn };
+}
 
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); btn.current?.focus(); } };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
-  }, [open]);
+function MenuLinks({ items, path, onPick }: { items: NavItem[]; path: string; onPick: () => void }) {
+  return items.map((i, n) => (
+    <Link
+      key={i.href}
+      href={i.href}
+      role="menuitem"
+      autoFocus={n === 0}
+      onClick={onPick}
+      aria-current={isActive(path, i.href) ? 'page' : undefined}
+      className="menu-item"
+    >
+      <i.icon {...icon} className={isActive(path, i.href) ? 'text-accent' : 'text-zinc-500'} /> {i.label}
+    </Link>
+  ));
+}
 
-  if (!user) return null;
+function AdminMenu({ path }: { path: string }) {
+  const m = useMenu();
+  const active = path.startsWith('/admin');
   return (
-    <div ref={ref} className="relative shrink-0">
+    <div ref={m.ref} className="relative hidden md:block">
       <button
-        ref={btn}
+        ref={m.btn}
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={() => m.setOpen(!m.open)}
         aria-haspopup="menu"
-        aria-expanded={open}
+        aria-expanded={m.open}
+        className={`flex h-9 items-center gap-2 rounded-lg px-3 text-sm transition-colors ${active ? 'bg-accent-soft font-medium text-indigo-900' : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'}`}
+      >
+        <Shield {...icon} className={active ? 'text-accent' : ''} /> Administración
+        <ChevronDown size={14} strokeWidth={1.5} aria-hidden className={`transition-transform ${m.open ? 'rotate-180' : ''}`} />
+      </button>
+      {m.open && (
+        <div role="menu" className="popover w-56">
+          <MenuLinks items={ADMIN} path={path} onPick={m.close} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UserMenu({ path }: { path: string }) {
+  const { user, logout } = useAuth();
+  const m = useMenu();
+  if (!user) return null;
+  const admin = user.role === 'admin';
+  return (
+    <div ref={m.ref} className="relative shrink-0">
+      <button
+        ref={m.btn}
+        type="button"
+        onClick={() => m.setOpen(!m.open)}
+        aria-haspopup="menu"
+        aria-expanded={m.open}
         aria-label={`Menú de ${user.name}`}
         className="flex items-center gap-2 rounded-full p-0.5 text-sm text-zinc-600 hover:text-zinc-900"
       >
         <Avatar name={user.name} size="md" decorative />
-        <span className="hidden max-w-[10rem] truncate pr-2 sm:inline">{user.name}</span>
+        <span className="hidden max-w-[10rem] truncate lg:inline">{user.name}</span>
+        <ChevronDown size={14} strokeWidth={1.5} aria-hidden className="mr-1 hidden lg:block" />
       </button>
-      {open && (
-        <div role="menu" className="absolute right-0 z-30 mt-2 w-60 rounded-lg border border-zinc-200 bg-white p-1 shadow-md" style={{ animation: 'dialog-in 140ms cubic-bezier(0.16, 1, 0.3, 1) both' }}>
-          <div className="border-b border-zinc-100 px-3 py-2">
-            <p className="truncate text-sm font-medium">{user.name}</p>
-            <p className="truncate text-xs text-zinc-500">{user.email}</p>
+      {m.open && (
+        <div role="menu" className="popover left-auto right-0 w-64">
+          <div className="flex items-center gap-3 px-2.5 py-2">
+            <Avatar name={user.name} size="md" decorative />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{user.name}</p>
+              <p className="truncate text-xs text-zinc-500">{user.email}</p>
+            </div>
           </div>
-          <button role="menuitem" autoFocus onClick={logout} className="mt-1 flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50">
-            <LogOut {...icon} /> Cerrar sesión
-          </button>
+          {admin && (
+            <div className="mt-1 border-t border-zinc-100 pt-1 md:hidden">
+              <p className="section-label px-2.5 pb-1 pt-2">Administración</p>
+              <MenuLinks items={ADMIN} path={path} onPick={m.close} />
+            </div>
+          )}
+          <div className="mt-1 border-t border-zinc-100 pt-1">
+            <button role="menuitem" autoFocus={!admin} onClick={logout} className="menu-item">
+              <LogOut {...icon} className="text-zinc-500" /> Cerrar sesión
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -57,40 +127,32 @@ function UserMenu() {
 export function Nav() {
   const { user } = useAuth();
   const path = usePathname();
-  const items = [
-    { href: '/', label: 'Tablero' },
-    { href: '/calendar', label: 'Calendario' },
-  ];
-  if (user?.role === 'admin') {
-    items.push(
-      { href: '/admin/users', label: 'Usuarios' },
-      { href: '/admin/task-types', label: 'Tipos' },
-      { href: '/admin/contacts', label: 'Contactos' },
-      { href: '/admin/logs', label: 'Logs' },
-    );
-  }
   return (
-    <header className="border-b border-zinc-200 bg-white">
+    <header className="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between gap-3 px-4 md:px-6">
-        <div className="flex min-w-0 items-center gap-3 sm:gap-8">
-          <Link href="/" className="shrink-0 rounded-md" aria-label="Acuérdalo, ir al tablero"><Logo /></Link>
-          <nav aria-label="Principal" className="no-scrollbar -mx-1 flex min-w-0 max-md:[mask-image:linear-gradient(to_right,black_88%,transparent)] items-center gap-1 overflow-x-auto px-1 py-1">
-            {items.map((i) => {
-              const active = i.href === '/' ? path === '/' : path.startsWith(i.href);
+        <div className="flex min-w-0 items-center gap-2 sm:gap-6">
+          <Link href="/" className="shrink-0 rounded-md" aria-label="Acuérdalo, ir al tablero">
+            <Logo compact />
+          </Link>
+          <nav aria-label="Principal" className="flex items-center gap-1">
+            {MAIN.map((i) => {
+              const active = isActive(path, i.href);
               return (
                 <Link
                   key={i.href}
                   href={i.href}
                   aria-current={active ? 'page' : undefined}
-                  className={`shrink-0 rounded-md px-3 py-1.5 text-sm transition-colors ${active ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-600 hover:text-zinc-900'}`}
+                  className={`flex h-9 items-center gap-2 rounded-lg px-3 text-sm transition-colors ${active ? 'bg-accent-soft font-medium text-indigo-900' : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'}`}
                 >
+                  <i.icon {...icon} className={active ? 'text-accent' : ''} />
                   {i.label}
                 </Link>
               );
             })}
+            {user?.role === 'admin' && <AdminMenu path={path} />}
           </nav>
         </div>
-        <UserMenu />
+        <UserMenu path={path} />
       </div>
     </header>
   );

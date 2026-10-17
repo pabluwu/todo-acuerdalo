@@ -1,80 +1,60 @@
 'use client';
 
-import {
-  DndContext, DragOverlay, KeyboardSensor, MouseSensor, TouchSensor, closestCorners, useDroppable, useSensor, useSensors,
-  type Announcements, type DragEndEvent, type DragOverEvent, type DragStartEvent,
-} from '@dnd-kit/core';
-import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { ClipboardList, Plus, SearchX } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, SearchX } from 'lucide-react';
-import { api } from '@/lib/api';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { api, dueState } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 import { icon } from '@/lib/icons';
 import { useToast } from '@/lib/toast';
-import { STATUSES, type Task, type TaskStatus, type TaskType, type UserLite } from '@/lib/types';
-import { FilterBar, type Filters } from './FilterBar';
+import { useMobile } from '@/lib/useMediaQuery';
+import type { Task, TaskStatus, TaskType, UserLite } from '@/lib/types';
+import { BoardToolbar, FILTER_KEYS, type BoardView, type Filters } from './BoardToolbar';
+import { EmptyState } from './EmptyState';
+import { KanbanView } from './KanbanView';
 import { NewTaskDialog } from './NewTaskDialog';
-import { BoardSkeleton } from './Skeletons';
-import { SortableTaskCard, TaskCardView } from './TaskCard';
+import { BoardSkeleton, ListSkeleton } from './Skeletons';
+import { SORTS, TaskListView, type ListSort } from './TaskListView';
 import { TaskPanel } from './TaskPanel';
 
-function Column({ id, label, dot, tasks, onOpen }: { id: TaskStatus; label: string; dot: string; tasks: Task[]; onOpen: (id: string) => void }) {
-  const { setNodeRef, isOver } = useDroppable({ id });
-  return (
-    <section aria-labelledby={`col-${id}`} className="flex max-h-[calc(100dvh-15rem)] min-w-0 shrink-0 basis-[85vw] snap-center flex-col md:max-h-none md:basis-auto">
-      <header className="mb-3 flex items-center gap-2 px-1">
-        <span aria-hidden className={`h-2 w-2 rounded-full ${dot}`} />
-        <h2 id={`col-${id}`} className="text-sm font-medium text-zinc-700">{label}</h2>
-        <span className="text-xs tabular-nums text-zinc-500">{tasks.length}</span>
-      </header>
-      <div ref={setNodeRef} className={`min-h-[12rem] flex-1 space-y-2.5 overflow-y-auto rounded-xl border border-dashed p-2 transition-colors md:overflow-visible ${isOver ? 'border-accent/40 bg-accent-soft/50' : 'border-transparent bg-zinc-100/60'}`}>
-        <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-          {tasks.map((t) => <SortableTaskCard key={t.id} task={t} onOpen={onOpen} />)}
-        </SortableContext>
-        {tasks.length === 0 && <p className="px-2 py-6 text-center text-xs text-zinc-500">Sin tareas</p>}
-      </div>
-    </section>
-  );
-}
+const VIEW_KEY = 'acuerdalo.boardView';
 
-const statusLabel = (id: string) => STATUSES.find((s) => s.id === id)?.label ?? 'otra columna';
-const announcements: Announcements = {
-  onDragStart: ({ active }) => `Tarea ${active.id} recogida.`,
-  onDragOver: ({ over }) => (over ? `Sobre ${STATUSES.some((s) => s.id === over.id) ? `la columna ${statusLabel(String(over.id))}` : 'otra tarea'}.` : ''),
-  onDragEnd: ({ over }) => (over ? 'Tarea soltada.' : 'Movimiento cancelado.'),
-  onDragCancel: () => 'Movimiento cancelado.',
-};
+function readStoredView(): BoardView | null {
+  try { return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : null; } catch { return null; }
+}
 
 export function Board() {
   const router = useRouter();
   const params = useSearchParams();
   const toast = useToast();
+  const { user } = useAuth();
+  const mobile = useMobile();
+
+  const rawDue = params.get('due');
+  const rawSort = params.get('sort') as ListSort | null;
   const filters: Filters = {
     assigneeId: params.get('assigneeId') ?? '',
     priority: params.get('priority') ?? '',
     typeId: params.get('typeId') ?? '',
+    due: rawDue === 'overdue' || rawDue === 'soon' ? rawDue : '',
+    status: params.get('status') ?? '',
+    sort: rawSort && SORTS.some((s) => s.id === rawSort) ? rawSort : 'manual',
   };
   const taskId = params.get('task');
-  const filterKey = `${filters.assigneeId}|${filters.priority}|${filters.typeId}`;
+  const serverKey = `${filters.assigneeId}|${filters.priority}|${filters.typeId}`;
+
+  // la vista elegida vive en la URL; sin parámetro se usa la última guardada. En móvil siempre lista.
+  const [storedView, setStoredView] = useState<BoardView | null>(null);
+  useEffect(() => setStoredView(readStoredView()), []);
+  const rawView = params.get('view');
+  const chosenView: BoardView = rawView === 'list' || rawView === 'board' ? rawView : storedView ?? 'board';
+  const view: BoardView = mobile ? 'list' : chosenView;
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [users, setUsers] = useState<UserLite[]>([]);
   const [types, setTypes] = useState<TaskType[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
-  const dragStart = useRef<{ status: TaskStatus; index: number } | null>(null);
-
-  const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
-    // el arrastre táctil necesita una pulsación larga para no bloquear el scroll del tablero
-    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
-    // Espacio inicia el arrastre; Enter queda libre para abrir la tarea
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-      keyboardCodes: { start: ['Space'], cancel: ['Escape'], end: ['Space', 'Enter'] },
-    }),
-  );
 
   const loadTasks = useCallback(() => {
     const q = new URLSearchParams();
@@ -85,7 +65,7 @@ export function Board() {
       .then((t) => { setTasks(t); setLoaded(true); })
       .catch((e) => toast(e.message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterKey, toast]);
+  }, [serverKey, toast]);
 
   useEffect(loadTasks, [loadTasks]);
   useEffect(() => {
@@ -99,12 +79,20 @@ export function Board() {
   }
   function setFilter(key: keyof Filters, value: string) {
     const next = new URLSearchParams(window.location.search);
-    if (value) next.set(key, value); else next.delete(key);
+    if (value && !(key === 'sort' && value === 'manual')) next.set(key, value); else next.delete(key);
     setUrl(next);
   }
   function clearFilters() {
     const next = new URLSearchParams(window.location.search);
-    ['assigneeId', 'priority', 'typeId'].forEach((k) => next.delete(k));
+    FILTER_KEYS.forEach((k) => next.delete(k));
+    setUrl(next);
+  }
+  function setView(v: BoardView) {
+    try { localStorage.setItem(VIEW_KEY, v); } catch { /* sin almacenamiento: queda solo en la URL */ }
+    setStoredView(v);
+    const next = new URLSearchParams(window.location.search);
+    next.set('view', v);
+    if (v === 'board') { next.delete('status'); next.delete('sort'); }
     setUrl(next);
   }
   const openTask = useCallback((id: string | null) => {
@@ -114,131 +102,93 @@ export function Board() {
     router.push(qs ? `/?${qs}` : '/', { scroll: false });
   }, [router]);
 
-  const matches = useCallback((t: Task) =>
+  const serverMatch = useCallback((t: Task) =>
     (!filters.assigneeId || t.assignees.some((a) => a.id === filters.assigneeId)) &&
     (!filters.priority || t.priority === filters.priority) &&
     (!filters.typeId || t.type?.id === filters.typeId),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  [filterKey]);
+  [serverKey]);
 
-  const columns = useMemo(
-    () => Object.fromEntries(STATUSES.map((s) => [s.id, tasks.filter((t) => t.status === s.id)])) as Record<TaskStatus, Task[]>,
-    [tasks],
-  );
+  // filtros locales: plazo siempre; estado solo en la lista (en el tablero las columnas ya son el estado)
+  const statusFilter = view === 'list' ? filters.status : '';
+  const visible = useCallback((t: Task) =>
+    (!filters.due || dueState(t) === filters.due) && (!statusFilter || t.status === statusFilter),
+  [filters.due, statusFilter]);
 
-  function findContainer(id: string): TaskStatus | undefined {
-    if (STATUSES.some((s) => s.id === id)) return id as TaskStatus;
-    return tasks.find((t) => t.id === id)?.status;
-  }
-
-  function onDragStart(e: DragStartEvent) {
-    const id = String(e.active.id);
-    setActiveId(id);
-    const task = tasks.find((t) => t.id === id);
-    if (task) dragStart.current = { status: task.status, index: columns[task.status].findIndex((t) => t.id === id) };
-  }
-
-  function onDragOver({ active, over }: DragOverEvent) {
-    if (!over) return;
-    const activeC = findContainer(String(active.id));
-    const overC = findContainer(String(over.id));
-    if (!activeC || !overC || activeC === overC) return;
-    setTasks((prev) => {
-      const moving = prev.find((t) => t.id === active.id);
-      if (!moving) return prev;
-      const rest = prev.filter((t) => t.id !== active.id);
-      const updated = { ...moving, status: overC };
-      const overIsColumn = STATUSES.some((s) => s.id === over.id);
-      if (overIsColumn) {
-        const lastIdx = rest.map((t) => t.status).lastIndexOf(overC);
-        rest.splice(lastIdx + 1, 0, updated);
-        return rest;
-      }
-      const overIdx = rest.findIndex((t) => t.id === over.id);
-      const below = active.rect.current.translated && active.rect.current.translated.top > over.rect.top + over.rect.height / 2;
-      rest.splice(overIdx + (below ? 1 : 0), 0, updated);
-      return rest;
-    });
-  }
-
-  async function onDragEnd({ active, over }: DragEndEvent) {
-    const id = String(active.id);
-    const start = dragStart.current;
-    dragStart.current = null;
-    setActiveId(null);
-    if (!over || !start) return;
-    let next = tasks;
-    const container = findContainer(id);
-    const overC = findContainer(String(over.id));
-    if (!container || !overC) return;
-    if (container === overC && id !== over.id && !STATUSES.some((s) => s.id === over.id)) {
-      const oldIdx = tasks.findIndex((t) => t.id === id);
-      const newIdx = tasks.findIndex((t) => t.id === over.id);
-      next = arrayMove(tasks, oldIdx, newIdx);
-      setTasks(next);
-    }
-    const col = next.filter((t) => t.status === container);
-    const idx = col.findIndex((t) => t.id === id);
-    if (container === start.status && idx === start.index) return;
-    const beforeId = col[idx + 1]?.id;
-    try {
-      await api(`/tasks/${id}/move`, {
-        method: 'PATCH',
-        body: { status: container, position: beforeId ? idx : 1_000_000, beforeId },
-      });
-    } catch (e) {
-      toast((e as Error).message);
-      loadTasks();
-    }
-  }
+  const shown = useMemo(() => tasks.filter(visible), [tasks, visible]);
+  const summary = useMemo(() => (loaded ? {
+    open: tasks.filter((t) => t.status !== 'completed').length,
+    overdue: tasks.filter((t) => dueState(t) === 'overdue').length,
+  } : null), [tasks, loaded]);
 
   function onTaskChanged(t: Task) {
     setTasks((prev) => {
       const old = prev.find((x) => x.id === t.id);
-      if (!matches(t)) return prev.filter((x) => x.id !== t.id);
+      if (!serverMatch(t)) return prev.filter((x) => x.id !== t.id);
       if (!old) return [...prev, t];
       if (old.status !== t.status) return [...prev.filter((x) => x.id !== t.id), t];
       return prev.map((x) => (x.id === t.id ? t : x));
     });
   }
 
-  const activeTask = activeId ? tasks.find((t) => t.id === activeId) : null;
+  async function cycleStatus(t: Task, to: TaskStatus) {
+    const before = tasks;
+    setTasks((prev) => [...prev.filter((x) => x.id !== t.id), { ...t, status: to }]);
+    try {
+      await api(`/tasks/${t.id}/move`, { method: 'PATCH', body: { status: to, position: 1_000_000 } });
+    } catch (e) {
+      setTasks(before);
+      toast((e as Error).message);
+    }
+  }
 
-  const filtered = Object.values(filters).some(Boolean);
+  const filtered = FILTER_KEYS.some((k) => filters[k] && (k !== 'status' || view === 'list'));
+  const ready = loaded && mobile !== null;
 
   return (
-    <div className="space-y-8">
-      <FilterBar filters={filters} users={users} types={types} onChange={setFilter} onClear={clearFilters} onNew={() => setShowNew(true)} />
-      {!loaded ? (
-        <BoardSkeleton />
-      ) : tasks.length === 0 ? (
-        <div className="flex flex-col items-center rounded-xl border border-dashed border-zinc-300 px-6 py-16 text-center">
-          {filtered && <SearchX size={20} strokeWidth={1.5} aria-hidden className="mb-3 text-zinc-400" />}
-          <p className="text-sm font-medium text-zinc-900">{filtered ? 'Ninguna tarea coincide con estos filtros' : 'Todavía no hay tareas'}</p>
-          <p className="mt-1 max-w-sm text-sm text-zinc-600">
-            {filtered ? 'Prueba con otra combinación o quita los filtros.' : 'Crea la primera para empezar a organizar el trabajo del equipo.'}
-          </p>
-          {filtered ? (
-            <button className="btn mt-5" onClick={clearFilters}>Limpiar filtros</button>
-          ) : (
-            <button className="btn-accent mt-5" onClick={() => setShowNew(true)}><Plus {...icon} /> Crear la primera tarea</button>
-          )}
-        </div>
-      ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          accessibility={{ announcements, screenReaderInstructions: { draggable: 'Pulsa Intro para abrir la tarea. Pulsa Espacio para recogerla, las flechas para moverla y Espacio de nuevo para soltarla.' } }}
-          onDragStart={onDragStart}
-          onDragOver={onDragOver}
-          onDragEnd={onDragEnd}
-          onDragCancel={() => { setActiveId(null); loadTasks(); }}
+    <div className="space-y-6">
+      <BoardToolbar
+        filters={filters}
+        users={users}
+        types={types}
+        meId={user?.id}
+        view={view}
+        mobile={mobile === true}
+        summary={summary}
+        onView={setView}
+        onChange={setFilter}
+        onClear={clearFilters}
+        onNew={() => setShowNew(true)}
+      />
+      {!ready ? (
+        view === 'list' ? <ListSkeleton /> : <BoardSkeleton />
+      ) : tasks.length === 0 && !filtered ? (
+        <EmptyState
+          icon={ClipboardList}
+          title="Todavía no hay tareas"
+          action={<button className="btn-accent" onClick={() => setShowNew(true)}><Plus {...icon} /> Crear la primera tarea</button>}
         >
-          <div className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:px-0 md:pb-0">
-            {STATUSES.map((s) => <Column key={s.id} id={s.id} label={s.label} dot={s.dot} tasks={columns[s.id]} onOpen={openTask} />)}
-          </div>
-          <DragOverlay>{activeTask ? <div className="rotate-1 shadow-md"><TaskCardView task={activeTask} /></div> : null}</DragOverlay>
-        </DndContext>
+          Crea la primera para empezar a organizar el trabajo del equipo.
+        </EmptyState>
+      ) : shown.length === 0 ? (
+        <EmptyState
+          icon={SearchX}
+          tone="neutral"
+          title="Ninguna tarea coincide con estos filtros"
+          action={<button className="btn" onClick={clearFilters}>Limpiar filtros</button>}
+        >
+          Prueba con otra combinación o quita los filtros.
+        </EmptyState>
+      ) : view === 'list' ? (
+        <TaskListView tasks={shown} sort={filters.sort} onOpen={openTask} onCycle={cycleStatus} />
+      ) : (
+        <KanbanView tasks={tasks} setTasks={setTasks} visible={visible} onOpen={openTask} reload={loadTasks} />
+      )}
+
+      {mobile && (
+        <button type="button" className="fab" aria-label="Nueva tarea" onClick={() => setShowNew(true)}>
+          <Plus size={24} strokeWidth={2} aria-hidden />
+        </button>
       )}
       {taskId && (
         <TaskPanel

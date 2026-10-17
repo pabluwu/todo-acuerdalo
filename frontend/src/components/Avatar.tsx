@@ -1,4 +1,12 @@
 import { initials } from '@/lib/api';
+import { PERSON_COLORS } from '@/lib/calendar';
+
+/** Color estable por persona: el mismo nombre siempre cae en el mismo tono. */
+function colorFor(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) | 0;
+  return PERSON_COLORS[Math.abs(h) % PERSON_COLORS.length];
+}
 
 /** `decorative` cuando el nombre ya aparece como texto junto al avatar. */
 export function Avatar({ name, size = 'sm', decorative = false }: { name: string; size?: 'sm' | 'md'; decorative?: boolean }) {
@@ -7,7 +15,7 @@ export function Avatar({ name, size = 'sm', decorative = false }: { name: string
     <span
       title={decorative ? undefined : name}
       aria-hidden={decorative || undefined}
-      className={`inline-flex ${cls} shrink-0 items-center justify-center rounded-full bg-zinc-100 font-medium text-zinc-600 ring-2 ring-white`}
+      className={`avatar ev-c-${colorFor(name)} inline-flex ${cls} shrink-0 items-center justify-center rounded-full font-semibold ring-2 ring-white`}
     >
       <span aria-hidden>{initials(name)}</span>
       {!decorative && <span className="sr-only">{name}</span>}

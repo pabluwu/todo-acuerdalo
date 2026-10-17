@@ -34,7 +34,7 @@ Las migraciones de TypeORM se ejecutan automáticamente al arrancar el backend (
 ## Funcionamiento
 
 - **Autenticación:** JWT en una cookie `httpOnly` (`access_token`) que pone el backend. Next.js hace proxy de `/api/*` al backend (`BACKEND_URL`), así que todo vive en el mismo origen. `middleware.ts` redirige a `/login` si no hay cookie.
-- **Tablero:** 3 columnas (Sin iniciar · En proceso · Completada) con arrastrar y soltar entre columnas y dentro de ellas (actualización optimista + `PATCH /api/tasks/:id/move`). Los filtros (persona, prioridad, tipo) viven en la URL; el panel de tarea se abre con `?task=<id>`.
+- **Tablero:** vista Tablero (3 columnas: Sin iniciar · En proceso · Completada, con arrastrar y soltar y actualización optimista + `PATCH /api/tasks/:id/move`) o vista Lista (`?view=list`, agrupada por estado u ordenada por fecha, prioridad o recientes, con cambio rápido de estado). En móvil solo se muestra la lista. Los filtros viven en la URL: persona, prioridad y tipo se aplican en la API; "Vencidas"/"Vencen pronto" (`due`), estado y orden se aplican en el cliente. El panel de tarea se abre con `?task=<id>`.
 - **Comentarios y adjuntos:** los archivos se guardan en el volumen Docker `uploads` (`/app/uploads`) y se descargan con autenticación en `GET /api/attachments/:id` (`?download=1` fuerza la descarga).
 - **Correos** (eventos con `@nestjs/event-emitter` + nodemailer; un fallo de envío se registra pero nunca rompe la petición):
   - Asignación: solo a los usuarios recién asignados.
@@ -49,7 +49,7 @@ Las migraciones de TypeORM se ejecutan automáticamente al arrancar el backend (
 
 ## Calendario
 
-Calendario compartido en `/calendar` (Mes · Semana · Día; en móvil, Día por defecto, semana de 3 días y mes con puntos y lista del día). Todos ven todos los eventos; solo el creador o un administrador puede editarlos, moverlos (arrastrar o redimensionar) o eliminarlos (403 para el resto).
+Calendario compartido en `/calendar` (Mes · Semana · Día en escritorio; en móvil, una agenda con tira semanal y lista de eventos agrupada por día). Todos ven todos los eventos; solo el creador o un administrador puede editarlos, moverlos (arrastrar o redimensionar) o eliminarlos (403 para el resto).
 
 - **Filtros** (en la URL): por persona (varias a la vez, "Mi agenda", "Todos"), por contacto externo y capa de tareas con fecha límite.
 - **Participantes internos** reciben correo al ser invitados, cuando cambia el título, el horario, el lugar o los participantes, y al cancelarse el evento; además, un recordatorio opcional (5 min, 15 min, 30 min, 1 h o 1 día antes) que un cron revisa cada minuto y envía una sola vez. Quien hace el cambio también recibe el aviso si participa o creó el evento. Los correos de eventos incluyen una invitación `.ics` (Google Calendar, Outlook y Apple Calendar la muestran para agregarla al calendario); la cancelación envía un `.ics` con `METHOD:CANCEL` que la retira. Los contactos externos nunca aparecen en el `.ics`.

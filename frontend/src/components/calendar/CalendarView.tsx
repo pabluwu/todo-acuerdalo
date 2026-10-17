@@ -3,7 +3,7 @@
 import type { DateSelectArg, DatesSetArg, EventContentArg, EventDropArg } from '@fullcalendar/core';
 import esLocale from '@fullcalendar/core/locales/es';
 import dayGridPlugin from '@fullcalendar/daygrid';
-import interactionPlugin, { type DateClickArg, type EventResizeDoneArg } from '@fullcalendar/interaction';
+import interactionPlugin, { type EventResizeDoneArg } from '@fullcalendar/interaction';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import { CheckSquare, ChevronLeft, ChevronRight, Plus, SlidersHorizontal, X } from 'lucide-react';
@@ -12,16 +12,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import {
-  type CalView, eventOnDay, localDateStr, parseLocalDate, PERSON_COLORS, utcDateStr, utcDayIso,
+  type CalView, addDaysStr, localDateStr, parseLocalDate, PERSON_COLORS, utcDateStr, utcDayIso,
 } from '@/lib/calendar';
 import { icon } from '@/lib/icons';
 import { useToast } from '@/lib/toast';
+import { useMobile } from '@/lib/useMediaQuery';
 import type { CalendarEvent, ExternalContact, Task, TaskType, UserLite } from '@/lib/types';
 import { Dialog } from '../Dialog';
-import { CalendarSkeleton } from '../Skeletons';
+import { AgendaSkeleton, CalendarSkeleton } from '../Skeletons';
 import { TaskPanel } from '../TaskPanel';
 import { CalendarFilters } from './CalendarFilters';
-import { DayList } from './DayList';
+import { AgendaView, weekStartOf } from './AgendaView';
 import { EventDetail } from './EventDetail';
 import { EventDialog, type EventDraft } from './EventDialog';
 
@@ -31,9 +32,7 @@ const FC_VIEWS = { timeGrid3Day: { type: 'timeGrid', duration: { days: 3 } } };
 const TIME_FMT = { hour: '2-digit', minute: '2-digit', hour12: false } as const;
 const BUSINESS_HOURS = { daysOfWeek: [1, 2, 3, 4, 5], startTime: '08:00', endTime: '19:00' };
 const TITLE_MONTH = { month: 'long', year: 'numeric' } as const;
-const TITLE_SHORT = { day: 'numeric', month: 'short', year: 'numeric' } as const;
 const TITLE_RANGE = { day: 'numeric', month: 'long', year: 'numeric' } as const;
-const NO_EVENTS: never[] = [];
 const DAY_HEADER_FMT = { weekday: 'short' } as const;
 const moreText = (a: { num: number }) => `+${a.num} más`;
 
@@ -47,18 +46,6 @@ function fcViewName(view: CalView, mobile: boolean) {
 }
 function viewFromFc(type: string): CalView {
   return type === 'dayGridMonth' ? 'month' : type === 'timeGridDay' ? 'day' : 'week';
-}
-
-function useMobile(): boolean | null {
-  const [m, setM] = useState<boolean | null>(null);
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)');
-    const f = () => setM(mq.matches);
-    f();
-    mq.addEventListener('change', f);
-    return () => mq.removeEventListener('change', f);
-  }, []);
-  return m;
 }
 
 export function CalendarView() {
@@ -111,6 +98,7 @@ export function CalendarView() {
   const [editing, setEditing] = useState<CalendarEvent | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState(dateStr);
+  const [agendaDays, setAgendaDays] = useState(14);
   // valores iniciales congelados: FullCalendar reinicia sus fechas si estas opciones cambian
   const init = useRef<{ view: string; date: Date } | null>(null);
   if (mobile !== null && !init.current) init.current = { view: fcViewName(view, mobile), date: parseLocalDate(dateStr)! };
@@ -212,27 +200,19 @@ export function CalendarView() {
     else if (localDateStr(cal.getDate()) !== dateStr) cal.gotoDate(parseLocalDate(dateStr)!);
   }, [view, dateStr, mobile]);
 
+  // en móvil no hay FullCalendar: la agenda carga desde el lunes de la semana hasta N días después del elegido
+  useEffect(() => {
+    if (!mobile) return;
+    const from = parseLocalDate(weekStartOf(dateStr))!;
+    const to = parseLocalDate(addDaysStr(dateStr, agendaDays))!;
+    setRange((r) => (r && r.from.getTime() === from.getTime() && r.to.getTime() === to.getTime() ? r : { from, to }));
+    setTitle(parseLocalDate(dateStr)!.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));
+  }, [mobile, dateStr, agendaDays]);
+
   const go = (dir: 'prev' | 'next' | 'today') => {
     const cal = calRef.current?.getApi();
     if (!cal) return;
     if (dir === 'prev') cal.prev(); else if (dir === 'next') cal.next(); else cal.today();
-  };
-
-  // deslizar horizontalmente cambia de periodo en móvil
-  const touch = useRef<{ x: number; y: number; ok: boolean } | null>(null);
-  const swipe = {
-    onTouchStart: (e: React.TouchEvent) => {
-      const t = e.touches[0];
-      touch.current = { x: t.clientX, y: t.clientY, ok: !(e.target as HTMLElement).closest('.fc-event') };
-    },
-    onTouchEnd: (e: React.TouchEvent) => {
-      const s = touch.current;
-      touch.current = null;
-      if (!s || !s.ok || !mobile) return;
-      const t = e.changedTouches[0];
-      const dx = t.clientX - s.x;
-      if (Math.abs(dx) > 70 && Math.abs(t.clientY - s.y) < 45) go(dx < 0 ? 'next' : 'prev');
-    },
   };
 
   // ---- interacciones ----
@@ -245,10 +225,6 @@ export function CalendarView() {
       allDay = false;
     }
     setCreating({ start, end, allDay });
-  }
-
-  function onDateClick(arg: DateClickArg) {
-    if (mobile && arg.view.type === 'dayGridMonth') setSelectedDay(localDateStr(arg.date));
   }
 
   function openEvent(id: string | null) {
@@ -338,28 +314,8 @@ export function CalendarView() {
     );
   }
 
-  const monthMobile = mobile === true && view === 'month';
-
-  // en el mes móvil FullCalendar no pinta eventos: cada día muestra su número y hasta 4 puntos
-  const renderDayCell = useCallback((a: { date: Date; dayNumberText: string }) => {
-    const day = localDateStr(a.date);
-    const evs = events.filter((e) => eventOnDay(e, day));
-    const tasks = tasksInRange.filter((t) => localDateStr(new Date(t.dueDate!)) === day);
-    const dots = [...evs.map((e) => ({ k: e.id, c: colorOf(e), task: false })), ...tasks.map((t) => ({ k: t.id, c: 'zinc', task: true }))];
-    return (
-      <>
-        <span className="cal-daynum">{a.dayNumberText.replace(/\D/g, '')}</span>
-        <span className="cal-dots" aria-hidden>
-          {dots.slice(0, 4).map((d) => <span key={d.k} className={`ev-c-${d.c} inline-flex`}><span className={`cal-dot ${d.task ? 'cal-dot-task' : ''}`} /></span>)}
-        </span>
-        {dots.length > 0 && <span className="sr-only">{dots.length} {dots.length === 1 ? 'evento' : 'eventos'}</span>}
-      </>
-    );
-  }, [events, tasksInRange, colorOf]);
   const filterCount = userIds.length + contactIds.length + (showTasks ? 1 : 0);
   const emptyRange = loaded && range && events.length === 0 && tasksInRange.length === 0;
-  const dayEvents = monthMobile ? events.filter((e) => eventOnDay(e, selectedDay)) : [];
-  const dayTasks = monthMobile ? tasksInRange.filter((t) => localDateStr(new Date(t.dueDate!)) === selectedDay) : [];
 
   const filters = user && (
     <CalendarFilters
@@ -376,132 +332,134 @@ export function CalendarView() {
     />
   );
 
-  if (mobile === null || !user) return <CalendarSkeleton />;
+  if (mobile === null || !user) return mobile ? <AgendaSkeleton /> : <CalendarSkeleton />;
+
+  const filterButton = (
+    <button type="button" className={`btn md:hidden ${filterCount ? '' : 'btn-icon'}`} onClick={() => setFiltersOpen(true)} aria-label={filterCount ? `Filtros, ${filterCount} activos` : 'Filtros'}>
+      <SlidersHorizontal {...icon} />
+      {filterCount > 0 && <span className="pill-count">{filterCount}</span>}
+    </button>
+  );
 
   return (
     <div className="grid gap-6 md:grid-cols-[15rem_minmax(0,1fr)] md:items-start">
       <h1 className="sr-only">Calendario</h1>
       <aside aria-label="Filtros del calendario" className="hidden md:block">{filters}</aside>
 
-      <div className="min-w-0">
-        {/* Barra de herramientas */}
-        <div className="mb-4 space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-1.5">
-              <button type="button" className="btn" onClick={() => go('today')}>Hoy</button>
-              <button type="button" className="btn-ghost btn-icon max-md:!h-8 max-md:!w-8" aria-label="Periodo anterior" onClick={() => go('prev')}><ChevronLeft {...icon} /></button>
-              <button type="button" className="btn-ghost btn-icon max-md:!h-8 max-md:!w-8" aria-label="Periodo siguiente" onClick={() => go('next')}><ChevronRight {...icon} /></button>
-              <h2 aria-live="polite" className="ml-0.5 min-w-0 truncate text-sm font-semibold tracking-tight first-letter:uppercase md:ml-1 md:text-lg">{title}</h2>
-            </div>
+      {mobile ? (
+        <div className="min-w-0">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <h2 aria-live="polite" className="min-w-0 truncate text-xl font-semibold tracking-tight first-letter:uppercase">{title}</h2>
             <div className="flex shrink-0 items-center gap-2">
-              <div role="group" aria-label="Vista" className="cal-seg hidden md:inline-flex">
-                {VIEWS.map((v) => <button key={v} type="button" aria-pressed={view === v} onClick={() => update({ view: v })}>{VIEW_LABEL[v]}</button>)}
-              </div>
-              <button type="button" className={`btn md:hidden ${filterCount ? '' : 'btn-icon'}`} onClick={() => setFiltersOpen(true)} aria-label={filterCount ? `Filtros, ${filterCount} activos` : 'Filtros'}>
-                <SlidersHorizontal {...icon} />
-                {filterCount > 0 && <span className="rounded-full bg-accent px-1.5 text-[11px] font-medium leading-4 text-white tabular-nums">{filterCount}</span>}
-              </button>
-              <button type="button" className="btn-accent max-md:btn-icon" aria-label="Nuevo evento" onClick={() => setCreating(defaultSlot(selectedDay))}>
-                <Plus {...icon} /> <span className="hidden md:inline">Nuevo evento</span>
-              </button>
+              {dateStr !== today && <button type="button" className="btn" onClick={() => update({ date: null })}>Hoy</button>}
+              {filterButton}
             </div>
           </div>
-          <div role="group" aria-label="Vista" className="cal-seg flex w-full md:hidden">
-            {VIEWS.map((v) => <button key={v} type="button" aria-pressed={view === v} onClick={() => update({ view: v })}>{v === 'week' ? '3 días' : VIEW_LABEL[v]}</button>)}
-          </div>
-        </div>
-
-        {emptyRange && (
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-zinc-300 px-4 py-2.5 text-sm">
-            <span className="text-zinc-600">{filterCount ? 'Sin eventos para esta selección' : `Sin eventos ${EMPTY_LABEL[view]}`}</span>
-            <button type="button" className="btn btn-sm" onClick={() => setCreating(defaultSlot(selectedDay))}><Plus {...icon} /> Crear evento</button>
-          </div>
-        )}
-
-        <div
-          {...swipe}
-          role="region"
-          aria-label="Calendario"
-          aria-busy={!loaded}
-          className={`cal-shell ${monthMobile ? 'cal-mobile-month' : ''} card-surface relative overflow-hidden ${monthMobile ? '' : 'h-[calc(100dvh-16rem)] min-h-[32rem] md:h-[calc(100dvh-13rem)]'}`}
-        >
-          <FullCalendar
-            ref={calRef}
-            plugins={PLUGINS}
-            locales={LOCALES}
-            locale="es"
-            timeZone="local"
-            firstDay={1}
-            initialView={init.current!.view}
-            initialDate={init.current!.date}
-            views={FC_VIEWS}
-            headerToolbar={false}
-            dayHeaderFormat={DAY_HEADER_FMT}
-            height={monthMobile ? 'auto' : '100%'}
-            expandRows={!monthMobile}
-            fixedWeekCount={false}
-            events={monthMobile ? NO_EVENTS : fcEvents}
-            dayCellContent={monthMobile ? renderDayCell : undefined}
-            eventDisplay="block"
-            forceEventDuration
-            displayEventEnd={false}
-            eventTimeFormat={TIME_FMT}
-            titleFormat={view === 'month' ? TITLE_MONTH : mobile ? TITLE_SHORT : TITLE_RANGE}
-            slotLabelFormat={TIME_FMT}
-            slotDuration="00:30:00"
-            slotLabelInterval="01:00"
-            scrollTime="08:00:00"
-            scrollTimeReset={false}
-            nowIndicator
-            allDayContent="Todo el día"
-            businessHours={BUSINESS_HOURS}
-            eventShortHeight={34}
-            eventMinHeight={22}
-            dayMaxEvents={monthMobile ? false : true}
-            moreLinkContent={moreText}
-            navLinks={!mobile}
-            navLinkDayClick="timeGridDay"
-            editable
-            eventInteractive
-            selectable={!monthMobile}
-            selectMirror
-            selectLongPressDelay={350}
-            eventLongPressDelay={350}
-            longPressDelay={350}
-            dayCellClassNames={(a) => (monthMobile && localDateStr(a.date) === selectedDay ? ['cal-selected'] : [])}
-            dayHeaderContent={(a) => (
-              <div className={`cal-head ${a.view.type === 'dayGridMonth' ? 'cal-head-month' : ''}`}>
-                <span className="cal-head-dow">{a.text.replace('.', '')}</span>
-                {a.view.type !== 'dayGridMonth' && <span className="cal-head-num">{a.date.getDate()}</span>}
-              </div>
-            )}
-            eventContent={renderEvent}
-            eventClick={(info) => {
-              info.jsEvent.preventDefault();
-              const x = info.event.extendedProps;
-              if (x.kind === 'task') openTask(x.taskId as string); else openEvent(info.event.id);
-            }}
-            eventDrop={persistTime}
-            eventResize={persistTime}
-            select={onSelect}
-            dateClick={onDateClick}
-            datesSet={onDatesSet}
-          />
-          {!loaded && <div className="absolute inset-0 z-10 bg-white/70" aria-hidden><div className="skeleton m-6 h-8 w-48" /></div>}
-        </div>
-
-        {monthMobile && (
-          <DayList
-            day={selectedDay}
-            events={dayEvents}
-            tasks={dayTasks}
+          <AgendaView
+            selectedDay={dateStr}
+            days={agendaDays}
+            events={events}
+            tasks={tasksInRange}
+            loaded={loaded}
             colorOf={colorOf}
+            onSelectDay={(d) => { setAgendaDays(14); update({ date: d === today ? null : d }); }}
+            onMore={() => setAgendaDays((n) => n + 14)}
             onOpenEvent={(id) => openEvent(id)}
             onOpenTask={(id) => openTask(id)}
-            onCreate={() => setCreating(defaultSlot(selectedDay))}
+            onCreate={(d) => setCreating(defaultSlot(d))}
           />
-        )}
-      </div>
+          <button type="button" className="fab" aria-label="Nuevo evento" onClick={() => setCreating(defaultSlot(dateStr))}>
+            <Plus size={24} strokeWidth={2} aria-hidden />
+          </button>
+        </div>
+      ) : (
+        <div className="min-w-0">
+          {/* Barra de herramientas */}
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <button type="button" className="btn" onClick={() => go('today')}>Hoy</button>
+              <button type="button" className="btn-ghost btn-icon" aria-label="Periodo anterior" onClick={() => go('prev')}><ChevronLeft {...icon} /></button>
+              <button type="button" className="btn-ghost btn-icon" aria-label="Periodo siguiente" onClick={() => go('next')}><ChevronRight {...icon} /></button>
+              <h2 aria-live="polite" className="ml-1 min-w-0 truncate text-lg font-semibold tracking-tight first-letter:uppercase">{title}</h2>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <div role="group" aria-label="Vista" className="seg">
+                {VIEWS.map((v) => <button key={v} type="button" aria-pressed={view === v} onClick={() => update({ view: v })}>{VIEW_LABEL[v]}</button>)}
+              </div>
+              <button type="button" className="btn-accent" onClick={() => setCreating(defaultSlot(selectedDay))}>
+                <Plus {...icon} /> Nuevo evento
+              </button>
+            </div>
+          </div>
+
+          {emptyRange && (
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-zinc-300 bg-white/60 px-4 py-2.5 text-sm">
+              <span className="text-zinc-600">{filterCount ? 'Sin eventos para esta selección' : `Sin eventos ${EMPTY_LABEL[view]}`}</span>
+              <button type="button" className="btn btn-sm" onClick={() => setCreating(defaultSlot(selectedDay))}><Plus {...icon} /> Crear evento</button>
+            </div>
+          )}
+
+          <div role="region" aria-label="Calendario" aria-busy={!loaded} className="cal-shell card-surface relative h-[calc(100dvh-13rem)] min-h-[32rem] overflow-hidden">
+            <FullCalendar
+              ref={calRef}
+              plugins={PLUGINS}
+              locales={LOCALES}
+              locale="es"
+              timeZone="local"
+              firstDay={1}
+              initialView={init.current!.view}
+              initialDate={init.current!.date}
+              views={FC_VIEWS}
+              headerToolbar={false}
+              dayHeaderFormat={DAY_HEADER_FMT}
+              height="100%"
+              expandRows
+              fixedWeekCount={false}
+              events={fcEvents}
+              eventDisplay="block"
+              forceEventDuration
+              displayEventEnd={false}
+              eventTimeFormat={TIME_FMT}
+              titleFormat={view === 'month' ? TITLE_MONTH : TITLE_RANGE}
+              slotLabelFormat={TIME_FMT}
+              slotDuration="00:30:00"
+              slotLabelInterval="01:00"
+              scrollTime="08:00:00"
+              scrollTimeReset={false}
+              nowIndicator
+              allDayContent="Todo el día"
+              businessHours={BUSINESS_HOURS}
+              eventShortHeight={34}
+              eventMinHeight={22}
+              dayMaxEvents
+              moreLinkContent={moreText}
+              navLinks
+              navLinkDayClick="timeGridDay"
+              editable
+              eventInteractive
+              selectable
+              selectMirror
+              dayHeaderContent={(a) => (
+                <div className={`cal-head ${a.view.type === 'dayGridMonth' ? 'cal-head-month' : ''}`}>
+                  <span className="cal-head-dow">{a.text.replace('.', '')}</span>
+                  {a.view.type !== 'dayGridMonth' && <span className="cal-head-num">{a.date.getDate()}</span>}
+                </div>
+              )}
+              eventContent={renderEvent}
+              eventClick={(info) => {
+                info.jsEvent.preventDefault();
+                const x = info.event.extendedProps;
+                if (x.kind === 'task') openTask(x.taskId as string); else openEvent(info.event.id);
+              }}
+              eventDrop={persistTime}
+              eventResize={persistTime}
+              select={onSelect}
+              datesSet={onDatesSet}
+            />
+            {!loaded && <div className="absolute inset-0 z-10 bg-white/70" aria-hidden><div className="skeleton m-6 h-8 w-48" /></div>}
+          </div>
+        </div>
+      )}
 
       {filtersOpen && (
         <Dialog variant="bottom" labelledBy="filters-title" onClose={() => setFiltersOpen(false)}>
