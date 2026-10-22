@@ -22,10 +22,11 @@ export class CommentsController {
   create(
     @Param('taskId', ParseUUIDPipe) taskId: string,
     @Body('body') body: string,
+    @Body('mentionIds') mentionIds: string | string[] | undefined,
     @UploadedFiles() files: Express.Multer.File[] = [],
     @CurrentUser() user: AuthUser,
   ) {
-    return this.comments.create(taskId, body ?? '', files ?? [], user);
+    return this.comments.create(taskId, body ?? '', files ?? [], user, mentionIds);
   }
 
   @Get('attachments/:id')

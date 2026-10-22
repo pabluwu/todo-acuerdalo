@@ -8,7 +8,7 @@ import { buildIcs, IcsMethod, parseAddress } from '../mail/ics';
 import { CalendarInvite, MailService } from '../mail/mail.service';
 import {
   activatedEmail, assignedEmail, changedEmail, dueEmail,
-  eventCancelledEmail, eventChangedEmail, eventInvitedEmail, eventReminderEmail,
+  eventCancelledEmail, eventChangedEmail, eventInvitedEmail, eventReminderEmail, mentionEmail,
 } from '../mail/templates';
 import {
   computeEventRecipients, detectEventChanges, EventSnapshot, formatEventWhen, snapshotFromPayload,
@@ -27,6 +27,12 @@ export interface TaskChangedEvent {
   actor: { id: string; name: string };
   changes: Change[];
   excludeUserIds?: string[];
+}
+export interface TaskMentionedEvent {
+  task: { id: string; title: string };
+  actor: { id: string; name: string };
+  comment: { body: string; attachmentNames: string[] };
+  users: U[];
 }
 export interface TaskDueEvent {
   task: { id: string; title: string; dueDate: Date; assignees: U[] };
@@ -115,6 +121,19 @@ export class NotificationsService {
       }
     } catch (err) {
       this.logger.error(`task.assigned: ${(err as Error).message}`);
+    }
+  }
+
+  @OnEvent('task.mentioned', { async: true })
+  async onMentioned(e: TaskMentionedEvent) {
+    try {
+      const { subject, html } = mentionEmail(this.appUrl, e.task, e.actor.name, e.comment);
+      for (const u of e.users) {
+        if (!u.isActive) continue;
+        await this.sendTo(u, subject, html);
+      }
+    } catch (err) {
+      this.logger.error(`task.mentioned: ${(err as Error).message}`);
     }
   }
 

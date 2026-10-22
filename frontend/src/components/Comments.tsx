@@ -5,7 +5,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { api, formatDate, formatSize } from '@/lib/api';
 import { icon } from '@/lib/icons';
 import { useToast } from '@/lib/toast';
-import type { Attachment, Comment } from '@/lib/types';
+import type { Attachment, Comment, UserLite } from '@/lib/types';
 import { Avatar } from './Avatar';
 
 function TypeIcon({ mime }: { mime: string }) {
@@ -54,7 +54,20 @@ function Attachments({ items }: { items: Attachment[] }) {
   );
 }
 
-export function Comments({ taskId }: { taskId: string }) {
+const norm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** Pinta como chip los @Nombre de usuarios conocidos; el resto del texto queda tal cual. */
+function renderBody(body: string, users: UserLite[]) {
+  const names = [...new Set(users.map((u) => u.name.trim()).filter(Boolean))].sort((a, b) => b.length - a.length);
+  if (names.length === 0) return body;
+  const re = new RegExp(`(@(?:${names.map(escapeRe).join('|')}))(?![\\p{L}\\p{N}_])`, 'gu');
+  return body.split(re).map((part, i) =>
+    i % 2 === 1 ? <span key={i} className="rounded bg-accent-soft px-1 font-medium text-accent">{part}</span> : part,
+  );
+}
+
+export function Comments({ taskId, users }: { taskId: string; users: UserLite[] }) {
   const toast = useToast();
   const headingId = useId();
   const [comments, setComments] = useState<Comment[]>([]);
@@ -67,6 +80,39 @@ export function Comments({ taskId }: { taskId: string }) {
   const endRef = useRef<HTMLDivElement>(null);
   const dragDepth = useRef(0);
   const posted = useRef(false);
+  const areaRef = useRef<HTMLTextAreaElement>(null);
+  const listId = useId();
+  const [mentions, setMentions] = useState<UserLite[]>([]);
+  // menú de @: posición del '@' en el texto y texto escrito tras él (null = cerrado)
+  const [menu, setMenu] = useState<{ start: number; query: string } | null>(null);
+  const [active, setActive] = useState(0);
+
+  const options = menu
+    ? users.filter((u) => { const q = norm(menu.query); return norm(u.name).includes(q) || norm(u.email).includes(q); }).slice(0, 6)
+    : [];
+  const open = menu !== null && options.length > 0;
+
+  function detectMenu(el: HTMLTextAreaElement) {
+    const upto = el.value.slice(0, el.selectionStart);
+    const m = /(^|\s)@([^\s@]*)$/.exec(upto);
+    if (m) {
+      const query = m[2];
+      setMenu((prev) => { if (!prev || prev.query !== query) setActive(0); return { start: upto.length - query.length - 1, query }; });
+    } else setMenu(null);
+  }
+
+  function pick(u: UserLite) {
+    if (!menu) return;
+    const el = areaRef.current;
+    const end = menu.start + 1 + menu.query.length;
+    const insert = `@${u.name} `;
+    const next = body.slice(0, menu.start) + insert + body.slice(end);
+    const caret = menu.start + insert.length;
+    setBody(next);
+    setMentions((m) => (m.some((x) => x.id === u.id) ? m : [...m, u]));
+    setMenu(null);
+    requestAnimationFrame(() => { el?.focus(); el?.setSelectionRange(caret, caret); });
+  }
 
   const load = useCallback(() => {
     api<Comment[]>(`/tasks/${taskId}/comments`).then((c) => { setComments(c); setLoaded(true); }).catch((e) => toast(e.message));
@@ -83,11 +129,15 @@ export function Comments({ taskId }: { taskId: string }) {
     try {
       const form = new FormData();
       form.append('body', body);
+      // solo los etiquetados cuyo @Nombre sigue en el texto
+      mentions.filter((u) => body.includes(`@${u.name}`)).forEach((u) => form.append('mentionIds', u.id));
       files.forEach((f) => form.append('files', f));
       const created = await api<Comment>(`/tasks/${taskId}/comments`, { method: 'POST', form });
       posted.current = true;
       setComments((c) => [...c, created]);
       setBody('');
+      setMentions([]);
+      setMenu(null);
       setFiles([]);
       if (fileRef.current) fileRef.current.value = '';
     } catch (err) {
@@ -123,7 +173,7 @@ export function Comments({ taskId }: { taskId: string }) {
                 <span className="text-sm font-medium">{c.author?.name ?? 'Usuario eliminado'}</span>
                 <time dateTime={c.createdAt} className="text-xs tabular-nums text-zinc-500">{formatDate(c.createdAt)}</time>
               </div>
-              {c.body && <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-zinc-700">{c.body}</p>}
+              {c.body && <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-zinc-700">{renderBody(c.body, users)}</p>}
               {c.attachments.length > 0 && <Attachments items={c.attachments} />}
             </div>
           </div>
@@ -143,15 +193,50 @@ export function Comments({ taskId }: { taskId: string }) {
             <Paperclip {...icon} /> Suelta los archivos para adjuntarlos
           </div>
         )}
-        <textarea
-          aria-label="Escribe un comentario"
-          rows={3}
-          className="w-full resize-none"
-          placeholder="Escribe un comentario…"
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); } }}
-        />
+        <div className="relative">
+          <textarea
+            ref={areaRef}
+            aria-label="Escribe un comentario"
+            aria-autocomplete="list"
+            aria-controls={open ? listId : undefined}
+            aria-activedescendant={open ? `${listId}-${active}` : undefined}
+            rows={3}
+            className="w-full resize-none"
+            placeholder="Escribe un comentario…"
+            value={body}
+            onChange={(e) => { setBody(e.target.value); detectMenu(e.target); }}
+            onSelect={(e) => detectMenu(e.currentTarget)}
+            onBlur={() => setMenu(null)}
+            onKeyDown={(e) => {
+              if (open) {
+                if (e.key === 'ArrowDown') { e.preventDefault(); setActive((i) => (i + 1) % options.length); return; }
+                if (e.key === 'ArrowUp') { e.preventDefault(); setActive((i) => (i - 1 + options.length) % options.length); return; }
+                if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); pick(options[Math.min(active, options.length - 1)]); return; }
+                if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setMenu(null); return; }
+              }
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); }
+            }}
+          />
+          {open && (
+            <ul id={listId} role="listbox" aria-label="Usuarios para etiquetar" className="absolute left-0 right-0 top-full z-20 mt-1 max-h-60 overflow-auto rounded-md border border-zinc-200 bg-white py-1 shadow-lg">
+              {options.map((u, i) => (
+                <li
+                  key={u.id}
+                  id={`${listId}-${i}`}
+                  role="option"
+                  aria-selected={i === active}
+                  onMouseDown={(e) => { e.preventDefault(); pick(u); }}
+                  onMouseEnter={() => setActive(i)}
+                  className={`flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm ${i === active ? 'bg-accent-soft text-accent' : 'text-zinc-700'}`}
+                >
+                  <Avatar name={u.name} decorative />
+                  <span className="font-medium">{u.name}</span>
+                  <span className="truncate text-xs text-zinc-500">{u.email}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         {files.length > 0 && (
           <ul className="flex flex-wrap gap-2">
             {files.map((f, i) => (
@@ -172,7 +257,7 @@ export function Comments({ taskId }: { taskId: string }) {
             <button type="button" className="btn" onClick={() => fileRef.current?.click()}><Paperclip {...icon} /> Adjuntar archivos</button>
           </div>
           <div className="flex items-center gap-3">
-            <span className="hidden text-xs text-zinc-500 sm:inline">⌘/Ctrl + Intro para enviar</span>
+            <span className="hidden text-xs text-zinc-500 sm:inline">Escribe @ para etiquetar a alguien · ⌘/Ctrl + Intro para enviar</span>
             <button className="btn-accent" disabled={!canSend}>{busy ? 'Enviando…' : 'Comentar'}</button>
           </div>
         </div>

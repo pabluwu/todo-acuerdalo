@@ -205,7 +205,7 @@ export function TaskDetail({
           </div>
 
           <hr className="border-zinc-100" />
-          <Comments taskId={task.id} />
+          <Comments taskId={task.id} users={users} />
 
           {canDelete && (
             <div className="border-t border-zinc-100 pt-6">

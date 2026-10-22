@@ -29,6 +29,28 @@ export function assignedEmail(appUrl: string, task: { id: string; title: string 
   };
 }
 
+export function mentionEmail(
+  appUrl: string,
+  task: { id: string; title: string },
+  actorName: string,
+  comment: { body: string; attachmentNames: string[] },
+) {
+  const quote = comment.body
+    ? `<blockquote style="margin:12px 0;padding:8px 14px;border-left:3px solid #4f46e5;background:#fafafa;color:#3f3f46;font-size:14px;line-height:1.6;white-space:pre-wrap">${esc(comment.body)}</blockquote>`
+    : '';
+  const files = comment.attachmentNames.length
+    ? `<p style="font-size:13px;color:#71717a;margin:8px 0 4px">Archivos adjuntos:</p><ul style="margin:0;padding-left:20px;font-size:13px;color:#3f3f46">${comment.attachmentNames.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>`
+    : '';
+  return {
+    subject: `${actorName} te mencionó en: ${task.title}`,
+    html: layout(
+      'Te etiquetaron en una tarea',
+      `<p style="font-size:14px;line-height:1.6">${esc(actorName)} te mencionó en un comentario de <strong>${esc(task.title)}</strong>:</p>${quote}${files}`,
+      { url: taskUrl(appUrl, task.id), text: 'Abrir tarea' },
+    ),
+  };
+}
+
 export function changedEmail(appUrl: string, task: { id: string; title: string }, actorName: string, changes: Change[]) {
   const rows = changes
     .map((c) => {
