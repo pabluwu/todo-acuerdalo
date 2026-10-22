@@ -10,6 +10,7 @@ export interface User {
   email: string;
   role: Role;
   isActive: boolean;
+  copyEmails: string[];
   createdAt: string;
 }
 
@@ -116,6 +117,7 @@ export const ACTION_LABELS: Record<string, string> = {
   'user.activate': 'Activó usuario',
   'user.deactivate': 'Desactivó usuario',
   'user.role_change': 'Cambió el rol de un usuario',
+  'user.copy_emails_change': 'Cambió las copias de correo de un usuario',
   'user.make_admin': 'Promovió a administrador',
   'task.create': 'Creó tarea',
   'task.update': 'Editó tarea',

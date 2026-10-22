@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Query } from '@nestjs/common';
 import { AuthUser, CurrentUser, Roles } from '../common/decorators';
-import { UpdateUserDto } from './users.dto';
+import { UpdateCopyEmailsDto, UpdateUserDto } from './users.dto';
 import { UsersService } from './users.service';
 
 @Controller()
@@ -10,6 +10,11 @@ export class UsersController {
   @Get('users')
   listActive() {
     return this.users.listActive();
+  }
+
+  @Patch('users/me/copy-emails')
+  updateCopyEmails(@Body() dto: UpdateCopyEmailsDto, @CurrentUser() actor: AuthUser) {
+    return this.users.updateCopyEmails(actor.id, dto.copyEmails, actor);
   }
 
   @Roles('admin')

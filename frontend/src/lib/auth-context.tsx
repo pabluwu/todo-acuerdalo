@@ -9,9 +9,10 @@ import type { User } from './types';
 interface AuthState {
   user: User | null;
   logout: () => Promise<void>;
+  setUser: (u: User) => void;
 }
 
-const AuthContext = createContext<AuthState>({ user: null, logout: async () => {} });
+const AuthContext = createContext<AuthState>({ user: null, logout: async () => {}, setUser: () => {} });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -42,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  return <AuthContext.Provider value={{ user, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, logout, setUser }}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => useContext(AuthContext);

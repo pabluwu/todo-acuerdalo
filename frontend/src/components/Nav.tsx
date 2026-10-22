@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  CalendarDays, ChevronDown, Contact, LayoutDashboard, LogOut, ScrollText, Shield, Tags, Users, type LucideIcon,
+  CalendarDays, ChevronDown, Contact, LayoutDashboard, LogOut, ScrollText, Shield, Tags, UserRound, Users, type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -114,7 +114,17 @@ function UserMenu({ path }: { path: string }) {
             </div>
           )}
           <div className="mt-1 border-t border-zinc-100 pt-1">
-            <button role="menuitem" autoFocus={!admin} onClick={logout} className="menu-item">
+            <Link
+              href="/account"
+              role="menuitem"
+              autoFocus={!admin}
+              onClick={m.close}
+              aria-current={isActive(path, '/account') ? 'page' : undefined}
+              className="menu-item"
+            >
+              <UserRound {...icon} className={isActive(path, '/account') ? 'text-accent' : 'text-zinc-500'} /> Mi cuenta
+            </Link>
+            <button role="menuitem" onClick={logout} className="menu-item">
               <LogOut {...icon} className="text-zinc-500" /> Cerrar sesión
             </button>
           </div>

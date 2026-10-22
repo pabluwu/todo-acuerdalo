@@ -22,10 +22,13 @@ export class User {
   @Column({ name: 'is_active', type: 'boolean', default: false })
   isActive!: boolean;
 
+  @Column({ name: 'copy_emails', type: 'text', array: true, default: '{}' })
+  copyEmails!: string[];
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
 }
 
 export function publicUser(u: User) {
-  return { id: u.id, name: u.name, email: u.email, role: u.role, isActive: u.isActive, createdAt: u.createdAt };
+  return { id: u.id, name: u.name, email: u.email, role: u.role, isActive: u.isActive, copyEmails: u.copyEmails ?? [], createdAt: u.createdAt };
 }

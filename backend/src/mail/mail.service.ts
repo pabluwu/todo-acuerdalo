@@ -27,11 +27,12 @@ export class MailService {
   }
 
   /** Nunca lanza: los errores de envío se registran y se ignoran. */
-  async send(to: string, subject: string, html: string, invite?: CalendarInvite): Promise<boolean> {
+  async send(to: string, subject: string, html: string, invite?: CalendarInvite, cc?: string[]): Promise<boolean> {
     try {
       await this.transporter.sendMail({
         from: this.from,
         to,
+        ...(cc?.length && { cc }),
         subject,
         html,
         // nodemailer añade el text/calendar como alternativa (Gmail/Outlook muestran la invitación) y como adjunto .ics
