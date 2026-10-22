@@ -15,7 +15,7 @@ ${link ? `<p style="margin-top:24px"><a href="${esc(link.url)}" style="backgroun
 }
 
 export function taskUrl(appUrl: string, taskId: string) {
-  return `${appUrl.replace(/\/$/, '')}/?task=${taskId}`;
+  return `${appUrl.replace(/\/$/, '')}/tasks/${taskId}`;
 }
 
 export function assignedEmail(appUrl: string, task: { id: string; title: string }, actorName: string) {

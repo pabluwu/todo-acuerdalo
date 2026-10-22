@@ -7,8 +7,10 @@ export function middleware(req: NextRequest) {
   if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))) return NextResponse.next();
   if (!req.cookies.get('access_token')) {
     const url = req.nextUrl.clone();
+    // se conserva el destino para volver tras el login (enlaces a /tasks/<id>)
+    const next = pathname + req.nextUrl.search;
     url.pathname = '/login';
-    url.search = '';
+    url.search = next === '/' ? '' : `?next=${encodeURIComponent(next)}`;
     return NextResponse.redirect(url);
   }
   return NextResponse.next();

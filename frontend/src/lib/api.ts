@@ -31,7 +31,7 @@ export async function api<T = unknown>(
       /* respuesta sin JSON */
     }
     if (res.status === 401 && typeof window !== 'undefined' && !['/login', '/register'].includes(window.location.pathname)) {
-      window.location.href = '/login';
+      window.location.href = `/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
     }
     throw new ApiError(res.status, message);
   }

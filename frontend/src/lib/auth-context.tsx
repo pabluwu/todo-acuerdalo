@@ -25,7 +25,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .catch(async () => {
         // cookie inválida: se limpia para evitar bucles con el middleware
         await fetch('/api/auth/logout', { method: 'POST' }).catch(() => undefined);
-        router.replace('/login');
+        const next = window.location.pathname + window.location.search;
+        router.replace(next === '/' ? '/login' : `/login?next=${encodeURIComponent(next)}`);
       })
       .finally(() => setLoading(false));
   }, [router]);

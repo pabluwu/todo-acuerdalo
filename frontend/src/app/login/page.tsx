@@ -1,13 +1,28 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useState } from 'react';
 import { Field } from '@/components/Field';
 import { Logo } from '@/components/Logo';
 import { PasswordInput } from '@/components/PasswordInput';
 import { api } from '@/lib/api';
 
+/** Solo rutas internas: evita redirecciones abiertas (//host, /\\host). */
+function safeNext(value: string | null): string {
+  return value && value.startsWith('/') && !value.startsWith('//') && !value.startsWith('/\\') ? value : '/';
+}
+
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
+  const nextUrl = safeNext(useSearchParams().get('next'));
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
@@ -26,7 +41,7 @@ export default function LoginPage() {
     setError('');
     try {
       await api('/auth/login', { method: 'POST', body: { email, password } });
-      window.location.href = '/';
+      window.location.href = nextUrl;
     } catch (err) {
       setError((err as Error).message);
       setBusy(false);
