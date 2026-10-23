@@ -4,12 +4,16 @@ import { Attachment } from '../entities/attachment.entity';
 import { CalendarEvent } from '../entities/event.entity';
 import { ExternalContact } from '../entities/external-contact.entity';
 import { Comment } from '../entities/comment.entity';
+import { NoteAccessRequest } from '../entities/note-access-request.entity';
+import { NoteShare } from '../entities/note-share.entity';
+import { Note } from '../entities/note.entity';
+import { PasswordResetToken } from '../entities/password-reset-token.entity';
 import { Log } from '../entities/log.entity';
 import { TaskType } from '../entities/task-type.entity';
 import { Task } from '../entities/task.entity';
 import { User } from '../entities/user.entity';
 
-const features = TypeOrmModule.forFeature([User, TaskType, Task, Comment, Attachment, Log, CalendarEvent, ExternalContact]);
+const features = TypeOrmModule.forFeature([User, TaskType, Task, Comment, Attachment, Log, CalendarEvent, ExternalContact, PasswordResetToken, Note, NoteShare, NoteAccessRequest]);
 
 @Global()
 @Module({ imports: [features], exports: [features] })

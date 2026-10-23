@@ -1,5 +1,6 @@
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  /** Cuerpo JSON de la respuesta de error (p. ej. `code: 'NO_ACCESS'`). */
+  constructor(public status: number, message: string, public data?: Record<string, unknown>) {
     super(message);
   }
 }
@@ -24,16 +25,18 @@ export async function api<T = unknown>(
   });
   if (!res.ok) {
     let message = `Error ${res.status}`;
+    let data: Record<string, unknown> | undefined;
     try {
-      const data = await res.json();
-      message = Array.isArray(data.message) ? data.message.join('. ') : (data.message ?? message);
+      const body = (await res.json()) as Record<string, unknown>;
+      data = body;
+      message = Array.isArray(body.message) ? body.message.join('. ') : typeof body.message === 'string' ? body.message : message;
     } catch {
       /* respuesta sin JSON */
     }
-    if (res.status === 401 && typeof window !== 'undefined' && !['/login', '/register'].includes(window.location.pathname)) {
+    if (res.status === 401 && typeof window !== 'undefined' && !['/login', '/register', '/forgot-password', '/reset-password'].includes(window.location.pathname)) {
       window.location.href = `/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
     }
-    throw new ApiError(res.status, message);
+    throw new ApiError(res.status, message, data);
   }
   if (res.status === 204) return undefined as T;
   const text = await res.text();

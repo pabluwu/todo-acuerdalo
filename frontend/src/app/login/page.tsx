@@ -60,7 +60,11 @@ function LoginForm() {
           <Field label="Correo" error={errors.email}>
             {(p) => <input {...p} type="email" autoComplete="email" className="w-full" value={email} onChange={(e) => setEmail(e.target.value)} />}
           </Field>
-          <Field label="Contraseña" error={errors.password}>
+          <Field
+            label="Contraseña"
+            error={errors.password}
+            action={<Link href="/forgot-password" className="rounded text-xs text-accent hover:underline">¿Olvidaste tu contraseña?</Link>}
+          >
             {(p) => <PasswordInput {...p} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />}
           </Field>
         </div>

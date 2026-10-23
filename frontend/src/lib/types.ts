@@ -103,6 +103,53 @@ export interface CalendarEvent {
   updatedAt: string;
 }
 
+export type NoteVisibility = 'common' | 'private';
+export type NotePermission = 'view' | 'edit';
+/** Nivel de acceso del usuario actual a una nota. */
+export type NoteAccess = 'owner' | 'edit' | 'view';
+
+export interface NoteSummary {
+  id: string;
+  title: string;
+  excerpt: string;
+  visibility: NoteVisibility;
+  owner: { id: string; name: string } | null;
+  updatedBy: { id: string; name: string } | null;
+  myAccess: NoteAccess;
+  shared: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NoteShare {
+  userId: string;
+  name: string;
+  email: string;
+  permission: NotePermission;
+}
+
+export interface Note extends Omit<NoteSummary, 'excerpt' | 'shared'> {
+  body: string;
+  canDelete: boolean;
+  /** Solo el dueño de una nota privada recibe la lista */
+  shares: NoteShare[];
+}
+
+export interface NoteAccessRequest {
+  id: string;
+  noteId: string;
+  user: UserLite;
+  createdAt: string;
+}
+
+/** Cuerpo del 403 al abrir una nota privada sin acceso: nunca incluye el contenido. */
+export interface NoteNoAccess {
+  code: 'NO_ACCESS';
+  title: string;
+  owner: { id: string; name: string } | null;
+  requestStatus: 'pending' | 'rejected' | null;
+}
+
 /** `tint` pinta el fondo de la columna; `fg` el ícono y la insignia de estado. */
 export const STATUSES: { id: TaskStatus; label: string; dot: string; icon: LucideIcon; tint: string; fg: string; badge: string }[] = [
   { id: 'not_started', label: 'Sin iniciar', dot: 'bg-zinc-400', icon: Circle, tint: 'bg-stone-100/80', fg: 'text-zinc-500', badge: 'bg-white text-zinc-600 ring-zinc-200' },
@@ -113,6 +160,8 @@ export const STATUSES: { id: TaskStatus; label: string; dot: string; icon: Lucid
 export const ACTION_LABELS: Record<string, string> = {
   'auth.login': 'Inició sesión',
   'auth.login_failed': 'Intento de acceso fallido',
+  'auth.password_reset_requested': 'Pidió restablecer su contraseña',
+  'auth.password_reset': 'Restableció su contraseña',
   'user.register': 'Se registró',
   'user.activate': 'Activó usuario',
   'user.deactivate': 'Desactivó usuario',
@@ -135,6 +184,12 @@ export const ACTION_LABELS: Record<string, string> = {
   'contact.delete': 'Eliminó contacto externo',
   'task_type.create': 'Creó tipo de tarea',
   'task_type.update': 'Editó tipo de tarea',
+  'note.create': 'Creó nota',
+  'note.update': 'Editó nota',
+  'note.delete': 'Eliminó nota',
+  'note.share': 'Compartió nota',
+  'note.access_request': 'Solicitó acceso a una nota',
+  'note.access_resolve': 'Resolvió una solicitud de acceso a nota',
   'comment.create': 'Comentó',
   'attachment.create': 'Adjuntó archivo',
   'http.request': 'Petición HTTP',
@@ -146,6 +201,7 @@ export const ENTITY_LABELS: Record<string, string> = {
   event: 'Evento',
   contact: 'Contacto externo',
   user: 'Usuario',
+  note: 'Nota',
   comment: 'Comentario',
   attachment: 'Adjunto',
   http: 'HTTP',
@@ -159,3 +215,15 @@ export const PRIORITIES: { id: TaskPriority; label: string; dot: string; icon: L
 
 /** Orden para ordenar por prioridad. */
 export const PRIORITY_RANK: Record<TaskPriority, number> = { high: 0, medium: 1, low: 2 };
+
+/** Texto plano para extractos: sin marcas de markdown. */
+export function plainExcerpt(md: string, max = 160): string {
+  const text = md
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/[#>*_`~|]/g, '')
+    .replace(/^\s*[-+]\s+/gm, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return text.length > max ? text.slice(0, max).trimEnd() + '…' : text;
+}

@@ -18,6 +18,10 @@ export function taskUrl(appUrl: string, taskId: string) {
   return `${appUrl.replace(/\/$/, '')}/tasks/${taskId}`;
 }
 
+export function noteUrl(appUrl: string, noteId: string) {
+  return `${appUrl.replace(/\/$/, '')}/notes/${noteId}`;
+}
+
 export function assignedEmail(appUrl: string, task: { id: string; title: string }, actorName: string) {
   return {
     subject: `Se te asignó una tarea: ${task.title}`,
@@ -91,6 +95,40 @@ export function activatedEmail(appUrl: string, name: string) {
       '¡Bienvenido!',
       `<p style="font-size:14px;line-height:1.6">Hola ${esc(name)}, un administrador aprobó tu cuenta. Ya puedes iniciar sesión.</p>`,
       { url: `${appUrl.replace(/\/$/, '')}/login`, text: 'Iniciar sesión' },
+    ),
+  };
+}
+
+export function passwordResetEmail(appUrl: string, token: string, name: string) {
+  return {
+    subject: 'Restablece tu contraseña de Acuérdalo',
+    html: layout(
+      'Define una nueva contraseña',
+      `<p style="font-size:14px;line-height:1.6">Hola ${esc(name)}, recibimos una solicitud para restablecer tu contraseña.</p><p style="font-size:13px;color:#71717a;line-height:1.6">El enlace sirve una sola vez y expira en 1 hora. Si no lo pediste, ignora este correo: tu contraseña no cambiará.</p>`,
+      { url: `${appUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(token)}`, text: 'Definir nueva contraseña' },
+    ),
+  };
+}
+
+export function noteAccessRequestEmail(appUrl: string, note: { id: string; title: string }, actorName: string) {
+  return {
+    subject: `${actorName} solicita acceso a: ${note.title}`,
+    html: layout(
+      'Solicitud de acceso a una nota',
+      `<p style="font-size:14px;line-height:1.6">${esc(actorName)} solicita acceso a tu nota privada <strong>${esc(note.title)}</strong>. Ábrela para aprobar o rechazar la solicitud.</p>`,
+      { url: noteUrl(appUrl, note.id), text: 'Abrir nota' },
+    ),
+  };
+}
+
+export function noteSharedEmail(appUrl: string, note: { id: string; title: string }, actorName: string, permission: 'view' | 'edit') {
+  const what = permission === 'edit' ? 'editar' : 'ver';
+  return {
+    subject: `${actorName} te dio acceso a una nota: ${note.title}`,
+    html: layout(
+      'Te compartieron una nota',
+      `<p style="font-size:14px;line-height:1.6">${esc(actorName)} te dio acceso para ${what} la nota <strong>${esc(note.title)}</strong>.</p>`,
+      { url: noteUrl(appUrl, note.id), text: 'Abrir nota' },
     ),
   };
 }

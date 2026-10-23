@@ -1,11 +1,12 @@
 'use client';
 
 import {
-  CalendarDays, ChevronDown, Contact, LayoutDashboard, LogOut, ScrollText, Shield, Tags, UserRound, Users, type LucideIcon,
+  CalendarDays, ChevronDown, Contact, LayoutDashboard, LogOut, NotebookPen, ScrollText, Shield, Tags, UserRound, Users, type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { icon } from '@/lib/icons';
 import { useDismiss } from '@/lib/useDismiss';
@@ -17,6 +18,7 @@ interface NavItem { href: string; label: string; icon: LucideIcon }
 const MAIN: NavItem[] = [
   { href: '/', label: 'Tablero', icon: LayoutDashboard },
   { href: '/calendar', label: 'Calendario', icon: CalendarDays },
+  { href: '/notes', label: 'Notas', icon: NotebookPen },
 ];
 const ADMIN: NavItem[] = [
   { href: '/admin/users', label: 'Usuarios', icon: Users },
@@ -137,6 +139,11 @@ function UserMenu({ path }: { path: string }) {
 export function Nav() {
   const { user } = useAuth();
   const path = usePathname();
+  // solicitudes de acceso a mis notas privadas, pendientes de resolver
+  const [pending, setPending] = useState(0);
+  useEffect(() => {
+    api<{ count: number }>('/notes/access-requests/pending/count').then((r) => setPending(r.count)).catch(() => undefined);
+  }, [path]);
   return (
     <header className="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between gap-3 px-4 md:px-6">
@@ -156,6 +163,9 @@ export function Nav() {
                 >
                   <i.icon {...icon} className={active ? 'text-accent' : ''} />
                   {i.label}
+                  {i.href === '/notes' && pending > 0 && (
+                    <span className="pill-count" aria-label={`${pending} solicitudes de acceso pendientes`}>{pending}</span>
+                  )}
                 </Link>
               );
             })}

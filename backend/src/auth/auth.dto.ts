@@ -18,3 +18,16 @@ export class LoginDto {
   @IsString() @MaxLength(100)
   password!: string;
 }
+
+export class ForgotPasswordDto {
+  @IsEmail() @MaxLength(200)
+  email!: string;
+}
+
+export class ResetPasswordDto {
+  @IsString() @MinLength(10) @MaxLength(200)
+  token!: string;
+
+  @IsString() @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' }) @MaxLength(100)
+  password!: string;
+}

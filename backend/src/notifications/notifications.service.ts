@@ -8,7 +8,7 @@ import { buildIcs, IcsMethod, parseAddress } from '../mail/ics';
 import { CalendarInvite, MailService } from '../mail/mail.service';
 import {
   activatedEmail, assignedEmail, changedEmail, dueEmail,
-  eventCancelledEmail, eventChangedEmail, eventInvitedEmail, eventReminderEmail, mentionEmail,
+  eventCancelledEmail, eventChangedEmail, eventInvitedEmail, eventReminderEmail, mentionEmail, noteAccessRequestEmail, noteSharedEmail, passwordResetEmail,
 } from '../mail/templates';
 import {
   computeEventRecipients, detectEventChanges, EventSnapshot, formatEventWhen, snapshotFromPayload,
@@ -55,6 +55,18 @@ export interface EventInvitedEvent { event: EventInfo; actor: { id: string; name
 export interface EventChangedEvent { event: EventInfo; before: EventSnapshot; actor: { id: string; name: string }; excludeUserIds?: string[] }
 export interface EventCancelledEvent { event: EventInfo; actor: { id: string; name: string } }
 export interface EventReminderEvent { event: EventInfo; minutes: number }
+
+export interface NoteSharedEvent {
+  note: { id: string; title: string };
+  actor: { id: string; name: string };
+  user: U;
+  permission: 'view' | 'edit';
+}
+export interface NoteAccessRequestedEvent {
+  note: { id: string; title: string };
+  actor: { id: string; name: string };
+  owner: U;
+}
 
 export function reminderLabel(minutes: number): string {
   if (minutes >= 1440) return 'mañana';
@@ -230,6 +242,41 @@ export class NotificationsService {
       await this.sendTo(e.user, subject, html);
     } catch (err) {
       this.logger.error(`user.activated: ${(err as Error).message}`);
+    }
+  }
+
+  @OnEvent('note.access_requested', { async: true })
+  async onNoteAccessRequested(e: NoteAccessRequestedEvent) {
+    try {
+      if (!e.owner.isActive) return;
+      const { subject, html } = noteAccessRequestEmail(this.appUrl, e.note, e.actor.name);
+      await this.sendTo(e.owner, subject, html);
+    } catch (err) {
+      this.logger.error(`note.access_requested: ${(err as Error).message}`);
+    }
+  }
+
+  /** Al compartir y al aprobar una solicitud: el invitado recibe el mismo aviso. */
+  @OnEvent('note.shared', { async: true })
+  @OnEvent('note.access_granted', { async: true })
+  async onNoteShared(e: NoteSharedEvent) {
+    try {
+      if (!e.user.isActive) return;
+      const { subject, html } = noteSharedEmail(this.appUrl, e.note, e.actor.name, e.permission);
+      await this.sendTo(e.user, subject, html);
+    } catch (err) {
+      this.logger.error(`note.shared: ${(err as Error).message}`);
+    }
+  }
+
+  /** Sin CC: el enlace es sensible y solo debe llegar al correo de la cuenta. */
+  @OnEvent('auth.password_reset_requested', { async: true })
+  async onPasswordResetRequested(e: { user: { id: string; name: string; email: string }; token: string }) {
+    try {
+      const { subject, html } = passwordResetEmail(this.appUrl, e.token, e.user.name);
+      await this.mail.send(e.user.email, subject, html);
+    } catch (err) {
+      this.logger.error(`auth.password_reset_requested: ${(err as Error).message}`);
     }
   }
 }

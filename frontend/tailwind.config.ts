@@ -1,3 +1,4 @@
+import typography from '@tailwindcss/typography';
 import type { Config } from 'tailwindcss';
 
 const config: Config = {
@@ -8,6 +9,6 @@ const config: Config = {
       colors: { accent: { DEFAULT: '#4f46e5', hover: '#4338ca', soft: '#eef2ff' } },
     },
   },
-  plugins: [],
+  plugins: [typography],
 };
 export default config;

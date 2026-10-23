@@ -16,6 +16,7 @@ import { EventsModule } from './events/events.module';
 import { CommentsModule } from './comments/comments.module';
 import { HealthController } from './health/health.controller';
 import { MailModule } from './mail/mail.module';
+import { NotesModule } from './notes/notes.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { TaskTypesModule } from './task-types/task-types.module';
@@ -47,6 +48,7 @@ import { UsersModule } from './users/users.module';
     CommentsModule,
     ContactsModule,
     EventsModule,
+    NotesModule,
     SchedulerModule,
   ],
   controllers: [HealthController],

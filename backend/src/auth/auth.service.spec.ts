@@ -1,11 +1,13 @@
-import { ConflictException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
-import { AuthService } from './auth.service';
+import { AuthService, hashResetToken } from './auth.service';
 
 describe('AuthService', () => {
   let users: any;
   let jwt: any;
   let audit: any;
+  let resetTokens: any;
+  let events: any;
   let service: AuthService;
 
   beforeEach(() => {
@@ -16,7 +18,14 @@ describe('AuthService', () => {
     };
     jwt = { signAsync: jest.fn().mockResolvedValue('signed-token') };
     audit = { log: jest.fn().mockResolvedValue(undefined) };
-    service = new AuthService(users, jwt, audit);
+    resetTokens = {
+      findOne: jest.fn(),
+      create: jest.fn((x) => x),
+      save: jest.fn(async (x) => x),
+      update: jest.fn().mockResolvedValue(undefined),
+    };
+    events = { emit: jest.fn() };
+    service = new AuthService(users, jwt, audit, resetTokens, events);
   });
 
   it('registra usuarios inactivos, con correo normalizado y contraseña hasheada', async () => {
@@ -59,5 +68,64 @@ describe('AuthService', () => {
     expect(res.token).toBe('signed-token');
     expect(jwt.signAsync).toHaveBeenCalledWith({ sub: 'u1', role: 'user' });
     expect(res.user).not.toHaveProperty('passwordHash');
+  });
+
+  describe('recuperar contraseña', () => {
+    const MSG = 'Si el correo está registrado, te enviamos un enlace';
+
+    it('guarda solo el hash SHA-256 del token y envía el original por evento', async () => {
+      users.findOne.mockResolvedValue({ id: 'u1', name: 'Ana', email: 'ana@a.com', isActive: true });
+      const res = await service.forgotPassword(' ANA@a.com ');
+      expect(res).toEqual({ message: MSG });
+      const saved = resetTokens.save.mock.calls[0][0];
+      const emitted = events.emit.mock.calls[0];
+      expect(emitted[0]).toBe('auth.password_reset_requested');
+      expect(emitted[1].token).toHaveLength(43);
+      expect(saved.tokenHash).toBe(hashResetToken(emitted[1].token));
+      expect(saved.tokenHash).not.toBe(emitted[1].token);
+      expect(saved.expiresAt.getTime()).toBeGreaterThan(Date.now() + 59 * 60 * 1000);
+      expect(saved.expiresAt.getTime()).toBeLessThanOrEqual(Date.now() + 60 * 60 * 1000);
+      expect(resetTokens.update).toHaveBeenCalled();
+    });
+
+    it('responde igual si el correo no existe o la cuenta está inactiva, sin generar token', async () => {
+      users.findOne.mockResolvedValue(null);
+      expect(await service.forgotPassword('nadie@a.com')).toEqual({ message: MSG });
+      users.findOne.mockResolvedValue({ id: 'u1', email: 'a@a.com', isActive: false });
+      expect(await service.forgotPassword('a@a.com')).toEqual({ message: MSG });
+      expect(resetTokens.save).not.toHaveBeenCalled();
+      expect(events.emit).not.toHaveBeenCalled();
+    });
+
+    it('rechaza enlaces inválidos, usados o expirados', async () => {
+      resetTokens.findOne.mockResolvedValue(null);
+      await expect(service.resetPassword('token-que-no-existe', 'nueva-clave-1')).rejects.toBeInstanceOf(BadRequestException);
+      expect(users.save).not.toHaveBeenCalled();
+      // la consulta exige token sin usar y vigente
+      const where = resetTokens.findOne.mock.calls[0][0].where;
+      expect(where.tokenHash).toBe(hashResetToken('token-que-no-existe'));
+      expect(where).toHaveProperty('usedAt');
+      expect(where).toHaveProperty('expiresAt');
+    });
+
+    it('cambia la contraseña, marca el token como usado e inicia sesión', async () => {
+      const user = { id: 'u1', email: 'a@a.com', name: 'A', role: 'user', passwordHash: 'viejo', isActive: true };
+      const row = { id: 't1', user, usedAt: null as Date | null };
+      resetTokens.findOne.mockResolvedValue(row);
+      const res = await service.resetPassword('tok', 'nueva-clave-1');
+      expect(user.passwordHash).not.toBe('viejo');
+      expect(await bcrypt.compare('nueva-clave-1', user.passwordHash)).toBe(true);
+      expect(row.usedAt).toBeInstanceOf(Date);
+      expect(resetTokens.save).toHaveBeenCalledWith(row);
+      expect(res.token).toBe('signed-token');
+      expect(res.user).not.toHaveProperty('passwordHash');
+      expect(audit.log).toHaveBeenCalledWith(expect.anything(), 'auth.password_reset', 'user', 'u1', null, null);
+    });
+
+    it('no inicia sesión si la cuenta está inactiva', async () => {
+      resetTokens.findOne.mockResolvedValue({ id: 't1', user: { id: 'u1', isActive: false }, usedAt: null });
+      await expect(service.resetPassword('tok', 'nueva-clave-1')).rejects.toBeInstanceOf(ForbiddenException);
+      expect(jwt.signAsync).not.toHaveBeenCalled();
+    });
   });
 });
