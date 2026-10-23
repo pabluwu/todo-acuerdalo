@@ -58,7 +58,7 @@ describe('TasksService.update', () => {
     const users: any = { find: jest.fn(async () => [u('a'), u('b')]) };
     const audit: any = { log: jest.fn() };
     const events: any = { emit: jest.fn() };
-    const svc = new TasksService(tasks, users, {} as any, {} as any, audit, events, { get: () => '/tmp' } as any);
+    const svc = new TasksService(tasks, users, {} as any, {} as any, audit, events, { delete: async () => undefined } as any);
     return { svc, task, events, audit };
   }
   const actor: any = { id: 'a', email: 'a@t.com', name: 'User a', role: 'user' };

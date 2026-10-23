@@ -19,6 +19,7 @@ import { MailModule } from './mail/mail.module';
 import { NotesModule } from './notes/notes.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
+import { StorageModule } from './storage/storage.module';
 import { TaskTypesModule } from './task-types/task-types.module';
 import { TasksModule } from './tasks/tasks.module';
 import { UsersModule } from './users/users.module';
@@ -38,6 +39,7 @@ import { UsersModule } from './users/users.module';
       }),
     }),
     EntitiesModule,
+    StorageModule,
     AuditModule,
     MailModule,
     NotificationsModule,

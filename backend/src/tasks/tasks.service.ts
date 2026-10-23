@@ -1,16 +1,14 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { promises as fs } from 'fs';
-import { join } from 'path';
 import { In, Repository } from 'typeorm';
-import { ConfigService } from '@nestjs/config';
 import { AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators';
 import { Comment } from '../entities/comment.entity';
 import { TaskType } from '../entities/task-type.entity';
 import { Task, TaskPriority, TaskStatus } from '../entities/task.entity';
 import { User } from '../entities/user.entity';
+import { StorageService } from '../storage/storage.service';
 import { CreateTaskDto, MoveTaskDto, TaskQueryDto, UpdateTaskDto } from './tasks.dto';
 import { applyStatusDates, detectChanges, newlyAssigned, snapshotTask } from './task-changes';
 
@@ -30,7 +28,7 @@ export class TasksService {
     @InjectRepository(Comment) private comments: Repository<Comment>,
     private audit: AuditService,
     private events: EventEmitter2,
-    private config: ConfigService,
+    private storage: StorageService,
   ) {}
 
   async list(q: TaskQueryDto) {
@@ -219,8 +217,7 @@ export class TasksService {
     const files = comments.flatMap((c) => c.attachments.map((a) => a.storedName));
     const before = this.present(task);
     await this.tasks.delete(id);
-    const dir = this.config.get('UPLOAD_DIR', '/app/uploads');
-    await Promise.all(files.map((f) => fs.unlink(join(dir, f)).catch(() => undefined)));
+    await this.storage.delete(files);
     await this.audit.log(actor, 'task.delete', 'task', id, before, null);
     return { ok: true };
   }

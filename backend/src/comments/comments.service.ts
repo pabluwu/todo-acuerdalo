@@ -1,9 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { promises as fs } from 'fs';
-import { join } from 'path';
+import { randomUUID } from 'crypto';
+import { extname } from 'path';
 import { In, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators';
@@ -11,6 +10,7 @@ import { Attachment } from '../entities/attachment.entity';
 import { Comment } from '../entities/comment.entity';
 import { Task } from '../entities/task.entity';
 import { User } from '../entities/user.entity';
+import { StorageService } from '../storage/storage.service';
 import { Change } from '../tasks/task-changes';
 import { normalizeMentionIds } from './mentions';
 
@@ -28,7 +28,7 @@ export class CommentsService {
     @InjectRepository(User) private users: Repository<User>,
     private audit: AuditService,
     private events: EventEmitter2,
-    private config: ConfigService,
+    private storage: StorageService,
   ) {}
 
   present(c: Comment) {
@@ -55,11 +55,7 @@ export class CommentsService {
 
   async create(taskId: string, body: string, files: Express.Multer.File[], actor: AuthUser, mentionIds?: string | string[]) {
     const task = await this.tasks.findOne({ where: { id: taskId } });
-    const cleanup = () => Promise.all(files.map((f) => fs.unlink(f.path).catch(() => undefined)));
-    if (!task) {
-      await cleanup();
-      throw new NotFoundException('Tarea no encontrada');
-    }
+    if (!task) throw new NotFoundException('Tarea no encontrada');
     const text = (body ?? '').trim();
     if (!text && files.length === 0) {
       throw new BadRequestException('El comentario no puede estar vacío');
@@ -67,21 +63,30 @@ export class CommentsService {
     // etiquetados: solo usuarios activos existentes (nunca el propio autor)
     const ids = normalizeMentionIds(mentionIds, actor.id);
     const mentioned = ids.length ? await this.users.find({ where: { id: In(ids), isActive: true } }) : [];
-    const comment = await this.comments.save(
-      this.comments.create({ taskId, authorId: actor.id, body: text }),
-    );
-    if (files.length > 0) {
-      await this.attachments.save(
-        files.map((f) =>
-          this.attachments.create({
-            commentId: comment.id,
-            originalName: decodeName(f.originalname).slice(0, 300),
-            mimeType: f.mimetype,
-            size: f.size,
-            storedName: f.filename,
-          }),
-        ),
+    // los archivos se suben antes de guardar el comentario; si algo falla se borran
+    const stored = files.map((f) => ({ file: f, name: randomUUID() + extname(f.originalname).slice(0, 12).replace(/[^a-zA-Z0-9.]/g, '') }));
+    let comment: Comment;
+    try {
+      await Promise.all(stored.map((s) => this.storage.put(s.name, s.file.buffer, s.file.mimetype)));
+      comment = await this.comments.save(
+        this.comments.create({ taskId, authorId: actor.id, body: text }),
       );
+      if (stored.length > 0) {
+        await this.attachments.save(
+          stored.map(({ file: f, name }) =>
+            this.attachments.create({
+              commentId: comment.id,
+              originalName: decodeName(f.originalname).slice(0, 300),
+              mimeType: f.mimetype,
+              size: f.size,
+              storedName: name,
+            }),
+          ),
+        );
+      }
+    } catch (e) {
+      await this.storage.delete(stored.map((s) => s.name));
+      throw e;
     }
     const full = await this.comments.findOneOrFail({ where: { id: comment.id } });
     const presented = this.present(full);
@@ -118,6 +123,6 @@ export class CommentsService {
   async getAttachment(id: string) {
     const a = await this.attachments.findOne({ where: { id } });
     if (!a) throw new NotFoundException('Adjunto no encontrado');
-    return { attachment: a, path: join(this.config.get('UPLOAD_DIR', '/app/uploads'), a.storedName) };
+    return { attachment: a, stream: await this.storage.getStream(a.storedName) };
   }
 }

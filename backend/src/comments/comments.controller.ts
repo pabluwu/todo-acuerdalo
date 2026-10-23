@@ -35,7 +35,7 @@ export class CommentsController {
     @Query('download') download: string | undefined,
     @Res() res: Response,
   ) {
-    const { attachment, path } = await this.comments.getAttachment(id);
+    const { attachment, stream } = await this.comments.getAttachment(id);
     const inline = download !== '1' && INLINE_TYPES.test(attachment.mimeType);
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.type(inline ? attachment.mimeType : 'application/octet-stream');
@@ -43,6 +43,9 @@ export class CommentsController {
       'Content-Disposition',
       `${inline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(attachment.originalName)}`,
     );
-    res.sendFile(path);
+    res.setHeader('Content-Length', String(attachment.size));
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    stream.on('error', () => res.destroy());
+    stream.pipe(res);
   }
 }
