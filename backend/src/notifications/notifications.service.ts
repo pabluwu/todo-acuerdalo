@@ -274,7 +274,8 @@ export class NotificationsService {
   async onPasswordResetRequested(e: { user: { id: string; name: string; email: string }; token: string }) {
     try {
       const { subject, html } = passwordResetEmail(this.appUrl, e.token, e.user.name);
-      await this.mail.send(e.user.email, subject, html);
+      const sent = await this.mail.send(e.user.email, subject, html);
+      if (!sent) this.logger.warn(`auth.password_reset_requested: no se pudo enviar el enlace a ${e.user.email}`);
     } catch (err) {
       this.logger.error(`auth.password_reset_requested: ${(err as Error).message}`);
     }

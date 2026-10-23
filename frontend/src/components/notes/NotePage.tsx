@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowLeft, Check, FileQuestion, Link2, Lock, Pencil, Share2, Trash2, Users, X } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useId, useState } from 'react';
@@ -13,6 +14,12 @@ import { EmptyState } from '../EmptyState';
 import { PanelSkeleton } from '../Skeletons';
 import { Markdown } from './Markdown';
 import { ShareDialog } from './ShareDialog';
+
+// El editor es pesado: solo se descarga al editar
+const NoteEditor = dynamic(() => import('./NoteEditor').then((m) => m.NoteEditor), {
+  ssr: false,
+  loading: () => <div className="note-editor-loading" role="status">Cargando editor…</div>,
+});
 
 const ACCESS_LABEL = { owner: 'Dueño', edit: 'Puede editar', view: 'Solo lectura' } as const;
 
@@ -28,7 +35,6 @@ export function NotePage({ noteId }: { noteId: string }) {
   const [requests, setRequests] = useState<NoteAccessRequest[]>([]);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({ title: '', body: '', visibility: 'common' as Note['visibility'] });
-  const [tab, setTab] = useState<'write' | 'preview'>('write');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [sharing, setSharing] = useState(false);
@@ -78,7 +84,6 @@ export function NotePage({ noteId }: { noteId: string }) {
   function startEdit() {
     if (!note) return;
     setDraft({ title: note.title, body: note.body, visibility: note.visibility });
-    setTab('write');
     setError('');
     setEditing(true);
   }
@@ -240,26 +245,8 @@ export function NotePage({ noteId }: { noteId: string }) {
               </div>
             )}
             <div>
-              <div className="mb-1 flex items-center justify-between">
-                <label className="text-xs text-zinc-600" htmlFor="note-body">Contenido (markdown)</label>
-                <div className="seg" role="group" aria-label="Modo del editor">
-                  <button type="button" aria-pressed={tab === 'write'} onClick={() => setTab('write')}>Escribir</button>
-                  <button type="button" aria-pressed={tab === 'preview'} onClick={() => setTab('preview')}>Vista previa</button>
-                </div>
-              </div>
-              {tab === 'write' ? (
-                <textarea
-                  id="note-body"
-                  rows={18}
-                  className="w-full resize-y font-mono"
-                  value={draft.body}
-                  onChange={(e) => setDraft({ ...draft, body: e.target.value })}
-                />
-              ) : (
-                <div className="min-h-[24rem] rounded-md border border-zinc-200 p-4">
-                  {draft.body.trim() ? <Markdown>{draft.body}</Markdown> : <p className="text-sm text-zinc-500">Nada que mostrar todavía.</p>}
-                </div>
-              )}
+              <label className="label" htmlFor="note-body">Contenido</label>
+              <NoteEditor id="note-body" markdown={draft.body} onChange={(body) => setDraft((d) => ({ ...d, body }))} />
             </div>
             {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p>}
             <div className="flex justify-end gap-2">
