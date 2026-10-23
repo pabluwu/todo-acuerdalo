@@ -12,7 +12,7 @@ import { TaskType } from '../entities/task-type.entity';
 import { Task, TaskPriority, TaskStatus } from '../entities/task.entity';
 import { User } from '../entities/user.entity';
 import { CreateTaskDto, MoveTaskDto, TaskQueryDto, UpdateTaskDto } from './tasks.dto';
-import { detectChanges, newlyAssigned, snapshotTask } from './task-changes';
+import { applyStatusDates, detectChanges, newlyAssigned, snapshotTask } from './task-changes';
 
 function parseDate(v: string | null | undefined): Date | null {
   if (v === null || v === undefined || v === '') return null;
@@ -101,8 +101,11 @@ export class TasksService {
     const type = await this.loadType(dto.typeId);
     const assignees = await this.loadAssignees(dto.assigneeIds ?? []);
     const status = (dto.status ?? 'not_started') as TaskStatus;
+    const dates = { startedAt: null as Date | null, completedAt: null as Date | null };
+    applyStatusDates(dates, status, new Date());
     const created = await this.tasks.save(
       this.tasks.create({
+        ...dates,
         title: dto.title.trim(),
         description: dto.description ?? '',
         status,
@@ -152,6 +155,7 @@ export class TasksService {
       }
     }
     if (dto.status !== undefined && dto.status !== task.status) {
+      applyStatusDates(task, dto.status, new Date());
       task.status = dto.status as TaskStatus;
       task.position = await this.nextPosition(dto.status);
     }
@@ -184,13 +188,20 @@ export class TasksService {
       const i = others.findIndex((t) => t.id === dto.beforeId);
       if (i >= 0) index = i;
     }
+    const statusChanged = task.status !== dto.status;
+    if (statusChanged) applyStatusDates(task, dto.status, new Date());
     task.status = dto.status as TaskStatus;
     others.splice(index, 0, task);
     for (let i = 0; i < others.length; i++) {
       if (others[i].id === id) continue;
       if (others[i].position !== i) await this.tasks.update(others[i].id, { position: i });
     }
-    await this.tasks.update(id, { status: task.status, position: index });
+    await this.tasks.update(
+      id,
+      statusChanged
+        ? { status: task.status, position: index, startedAt: task.startedAt, completedAt: task.completedAt }
+        : { status: task.status, position: index },
+    );
 
     const updated = await this.getOrFail(id);
     const changes = detectChanges(before, snapshotTask(updated));

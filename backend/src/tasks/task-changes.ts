@@ -95,3 +95,23 @@ export function computeRecipients(
   }
   return [...map.values()];
 }
+
+/**
+ * Actualiza las marcas de inicio/cierre según el nuevo estado.
+ * Solo debe llamarse cuando el estado realmente cambia.
+ */
+export function applyStatusDates(
+  task: { startedAt: Date | null; completedAt: Date | null },
+  newStatus: string,
+  now: Date,
+) {
+  if (newStatus === 'in_progress') {
+    task.startedAt = now;
+    task.completedAt = null;
+  } else if (newStatus === 'completed') {
+    task.completedAt = now;
+  } else if (newStatus === 'not_started') {
+    task.startedAt = null;
+    task.completedAt = null;
+  }
+}

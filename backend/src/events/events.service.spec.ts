@@ -157,7 +157,7 @@ describe('Los contactos externos NUNCA reciben correo', () => {
     qb.getMany = jest.fn(async () => [makeEvent({ participants: [u('a'), u('b')], reminderMinutes: 15 })]);
     qb.execute = jest.fn(async () => ({ affected: 1 }));
     const repo: any = { createQueryBuilder: jest.fn(() => qb) };
-    const sched = new SchedulerService({} as any, repo, ctx.emitter, ctx.audit, {} as any, { get: (_k: string, d: any) => d } as any);
+    const sched = new SchedulerService({} as any, {} as any, repo, ctx.emitter, ctx.audit, {} as any, { get: (_k: string, d: any) => d } as any);
     await sched.runEventReminders(new Date('2026-10-15T12:50:00Z'));
     await flush();
 
@@ -177,7 +177,7 @@ describe('Los contactos externos NUNCA reciben correo', () => {
     qb.execute = jest.fn().mockResolvedValueOnce({ affected: 1 }).mockResolvedValueOnce({ affected: 0 });
     const repo: any = { createQueryBuilder: jest.fn(() => qb) };
     const emitter: any = { emit: jest.fn() };
-    const sched = new SchedulerService({} as any, repo, emitter, { log: jest.fn() } as any, {} as any, { get: (_k: string, d: any) => d } as any);
+    const sched = new SchedulerService({} as any, {} as any, repo, emitter, { log: jest.fn() } as any, {} as any, { get: (_k: string, d: any) => d } as any);
     await sched.runEventReminders(new Date('2026-10-15T12:56:00Z'));
     await sched.runEventReminders(new Date('2026-10-15T12:57:00Z'));
     expect(emitter.emit.mock.calls.filter((c: any[]) => c[0] === 'event.reminder')).toHaveLength(1);

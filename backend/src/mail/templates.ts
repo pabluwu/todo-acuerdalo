@@ -1,3 +1,4 @@
+import { SummaryTask, UserSummary } from '../scheduler/weekly-summary';
 import { Change } from '../tasks/task-changes';
 
 export function esc(s: string | null | undefined): string {
@@ -212,6 +213,77 @@ export function eventReminderEmail(appUrl: string, ev: EventMailInfo, minutesLab
         ['Participantes', ev.participantNames.join(', ')],
       ])}`,
       { url: eventUrl(appUrl, ev.id), text: 'Ver en el calendario' },
+    ),
+  };
+}
+
+export interface WeeklySummarySection {
+  heading: string;
+  summary: UserSummary;
+}
+
+const SUMMARY_PRIORITIES: { key: string; label: string; color: string }[] = [
+  { key: 'high', label: 'Alta', color: '#dc2626' },
+  { key: 'medium', label: 'Media', color: '#d97706' },
+  { key: 'low', label: 'Baja', color: '#71717a' },
+];
+
+function summaryBadge(text: string, bg: string, fg: string) {
+  return `<span style="display:inline-block;margin-left:6px;padding:1px 8px;border-radius:10px;background:${bg};color:${fg};font-size:11px;font-weight:600">${esc(text)}</span>`;
+}
+
+function summaryTaskRow(appUrl: string, t: SummaryTask, kind: 'closed' | 'inProgress' | 'pending', timeZone: string) {
+  const fmt = (d: Date, opts: Intl.DateTimeFormatOptions) => new Date(d).toLocaleDateString('es-ES', { ...opts, timeZone });
+  const notes: string[] = [];
+  if (t.dueDate) notes.push(`Vence ${fmt(t.dueDate, { day: 'numeric', month: 'short', year: 'numeric' })}`);
+  if (kind === 'inProgress') {
+    if (t.startedLastWeek) notes.push('Iniciada la semana pasada');
+    else if (t.startedAt) notes.push(`En progreso desde ${fmt(t.startedAt, { day: 'numeric', month: 'short' })}`);
+  }
+  let badge = '';
+  if (t.overdue) badge = summaryBadge('⚠ Vencida', '#fee2e2', '#b91c1c');
+  else if (t.dueThisWeek) badge = summaryBadge('⚠ Vence esta semana', '#fef3c7', '#92400e');
+  return `<li style="margin:0 0 6px"><a href="${esc(taskUrl(appUrl, t.id))}" style="color:#18181b;text-decoration:none;font-weight:500">${esc(t.title)}</a>${badge}${
+    notes.length ? `<div style="font-size:12px;color:#71717a">${esc(notes.join(' · '))}</div>` : ''
+  }</li>`;
+}
+
+function summaryBlock(appUrl: string, title: string, tasks: SummaryTask[], kind: 'closed' | 'inProgress' | 'pending', timeZone: string) {
+  if (tasks.length === 0) return '';
+  const head = `<h3 style="font-size:14px;margin:16px 0 6px">${esc(title)} (${tasks.length})</h3>`;
+  const list = (items: SummaryTask[]) =>
+    `<ul style="margin:0 0 8px;padding-left:20px;font-size:14px;line-height:1.5">${items.map((t) => summaryTaskRow(appUrl, t, kind, timeZone)).join('')}</ul>`;
+  if (kind === 'closed') return head + list(tasks);
+  const groups = SUMMARY_PRIORITIES.map((p) => {
+    const items = tasks.filter((t) => t.priority === p.key);
+    if (items.length === 0) return '';
+    return `<div style="font-size:12px;font-weight:600;color:${p.color};margin:8px 0 4px">Prioridad ${p.label}</div>${list(items)}`;
+  }).join('');
+  return head + groups;
+}
+
+export function weeklySummaryEmail(
+  appUrl: string,
+  data: { name: string; sections: WeeklySummarySection[]; periodLabel: string; timeZone: string },
+) {
+  const body = data.sections
+    .map(({ heading, summary: s }) => {
+      const c = s.counts;
+      const totals = `${c.closed} cerradas · ${c.startedLastWeek} iniciadas la semana pasada · ${c.inProgress} en progreso · ${c.pending} pendientes · ${c.dueThisWeek} vencen esta semana`;
+      const blocks =
+        summaryBlock(appUrl, 'Cerradas la semana pasada', s.closed, 'closed', data.timeZone) +
+        summaryBlock(appUrl, 'En progreso', s.inProgress, 'inProgress', data.timeZone) +
+        summaryBlock(appUrl, 'Pendientes (sin iniciar)', s.pending, 'pending', data.timeZone) ||
+        '<p style="font-size:14px;color:#71717a">Sin tareas.</p>';
+      return `<div style="margin:0 0 24px"><h2 style="font-size:16px;margin:0 0 4px;padding-top:8px;border-top:1px solid #e4e4e7">${esc(heading)}</h2><p style="font-size:13px;color:#71717a;margin:0">${esc(totals)}</p>${blocks}</div>`;
+    })
+    .join('');
+  return {
+    subject: `Resumen semanal de tareas — semana del ${data.periodLabel}`,
+    html: layout(
+      `Resumen semanal, ${data.name}`,
+      `<p style="font-size:14px;line-height:1.6">Así está el panorama de tareas para la semana del ${esc(data.periodLabel)}.</p>${body}`,
+      { url: appUrl.replace(/\/$/, '') + '/', text: 'Abrir el tablero' },
     ),
   };
 }

@@ -8,7 +8,7 @@ import { buildIcs, IcsMethod, parseAddress } from '../mail/ics';
 import { CalendarInvite, MailService } from '../mail/mail.service';
 import {
   activatedEmail, assignedEmail, changedEmail, dueEmail,
-  eventCancelledEmail, eventChangedEmail, eventInvitedEmail, eventReminderEmail, mentionEmail, noteAccessRequestEmail, noteSharedEmail, passwordResetEmail,
+  eventCancelledEmail, eventChangedEmail, eventInvitedEmail, eventReminderEmail, mentionEmail, noteAccessRequestEmail, noteSharedEmail, passwordResetEmail, weeklySummaryEmail, WeeklySummarySection,
 } from '../mail/templates';
 import {
   computeEventRecipients, detectEventChanges, EventSnapshot, formatEventWhen, snapshotFromPayload,
@@ -37,6 +37,11 @@ export interface TaskMentionedEvent {
 export interface TaskDueEvent {
   task: { id: string; title: string; dueDate: Date; assignees: U[] };
   kind: 'due_soon' | 'overdue';
+}
+
+export interface TaskWeeklySummaryEvent {
+  periodLabel: string;
+  recipients: { user: U; sections: WeeklySummarySection[] }[];
 }
 
 /** Datos de un evento para los correos: solo usuarios internos, nunca contactos externos. */
@@ -170,6 +175,20 @@ export class NotificationsService {
       }
     } catch (err) {
       this.logger.error(`task.due: ${(err as Error).message}`);
+    }
+  }
+
+  @OnEvent('task.weekly_summary', { async: true })
+  async onWeeklySummary(e: TaskWeeklySummaryEvent) {
+    for (const r of e.recipients) {
+      try {
+        const { subject, html } = weeklySummaryEmail(this.appUrl, {
+          name: r.user.name, sections: r.sections, periodLabel: e.periodLabel, timeZone: this.timeZone,
+        });
+        await this.sendTo(r.user, subject, html);
+      } catch (err) {
+        this.logger.error(`task.weekly_summary (${r.user.email}): ${(err as Error).message}`);
+      }
     }
   }
 

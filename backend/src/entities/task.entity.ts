@@ -59,6 +59,12 @@ export class Task {
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt!: Date;
 
+  @Column({ name: 'started_at', type: 'timestamptz', nullable: true })
+  startedAt!: Date | null;
+
+  @Column({ name: 'completed_at', type: 'timestamptz', nullable: true })
+  completedAt!: Date | null;
+
   @Column({ name: 'due_soon_notified_at', type: 'timestamptz', nullable: true })
   dueSoonNotifiedAt!: Date | null;
 
