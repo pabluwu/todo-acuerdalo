@@ -25,7 +25,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       <div
         role="status"
         aria-live="polite"
-        className="pointer-events-none fixed bottom-4 left-1/2 z-[60] flex w-[calc(100vw-2rem)] max-w-sm -translate-x-1/2 flex-col gap-2"
+        className="pointer-events-none fixed bottom-[calc(3.5rem+1rem+env(safe-area-inset-bottom))] left-1/2 md:bottom-4 z-[60] flex w-[calc(100vw-2rem)] max-w-sm -translate-x-1/2 flex-col gap-2"
       >
         {msgs.map((m) => (
           <div

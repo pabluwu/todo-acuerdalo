@@ -1,0 +1,33 @@
+{
+  "packageId": "cl.acuerdalo.app",
+  "host": "todo.acuerdalo.cl",
+  "name": "Acuérdalo",
+  "launcherName": "Acuérdalo",
+  "display": "standalone",
+  "orientation": "default",
+  "themeColor": "#4f46e5",
+  "themeColorDark": "#4f46e5",
+  "navigationColor": "#ffffff",
+  "navigationColorDark": "#ffffff",
+  "backgroundColor": "#ffffff",
+  "startUrl": "/",
+  "iconUrl": "https://todo.acuerdalo.cl/icons/icon-512.png",
+  "maskableIconUrl": "https://todo.acuerdalo.cl/icons/icon-maskable-512.png",
+  "webManifestUrl": "https://todo.acuerdalo.cl/manifest.webmanifest",
+  "fullScopeUrl": "https://todo.acuerdalo.cl/",
+  "appVersion": "1.0.0",
+  "appVersionCode": 1,
+  "enableNotifications": true,
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "signingKey": {
+    "path": "../../../acuerdalo-android.keystore",
+    "alias": "acuerdalo"
+  },
+  "fallbackType": "customtabs",
+  "features": {},
+  "splashScreenFadeOutDuration": 300,
+  "minSdkVersion": 21,
+  "generatorApp": "bubblewrap-cli"
+}

@@ -12,12 +12,13 @@ import { NoteAccessRequest } from '../entities/note-access-request.entity';
 import { NoteShare } from '../entities/note-share.entity';
 import { Note } from '../entities/note.entity';
 import { PasswordResetToken } from '../entities/password-reset-token.entity';
+import { PushSubscription } from '../entities/push-subscription.entity';
 import { Log } from '../entities/log.entity';
 import { TaskType } from '../entities/task-type.entity';
 import { Task } from '../entities/task.entity';
 import { User } from '../entities/user.entity';
 
-const features = TypeOrmModule.forFeature([User, TaskType, Task, Comment, Attachment, Log, CalendarEvent, ExternalContact, PasswordResetToken, Note, NoteShare, NoteAccessRequest, Client, ClientNote, ClientFolder, ClientFile]);
+const features = TypeOrmModule.forFeature([User, TaskType, Task, Comment, Attachment, Log, CalendarEvent, ExternalContact, PasswordResetToken, Note, NoteShare, NoteAccessRequest, Client, ClientNote, ClientFolder, ClientFile, PushSubscription]);
 
 @Global()
 @Module({ imports: [features], exports: [features] })

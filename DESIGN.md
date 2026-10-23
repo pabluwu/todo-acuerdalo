@@ -196,8 +196,8 @@ The palette is warm paper with indigo ink, plus a semantic vocabulary for status
 ## Layout
 
 - The container is 1400px wide with a 16px gutter on mobile and 24px from `md` up.
-- The nav is fixed (56px), on translucent paper.
-- **Board:** a three-column kanban grid (16–20px gaps) on desktop, or a list. Under 768px only the list exists, with the filter rail in a single row that scrolls horizontally and a 56px floating button in the bottom-right corner.
+- The top bar is fixed (56px), on translucent paper. Under 768px a fixed bottom tab bar (56px plus the safe area) carries the four main links, and the page reserves that space as bottom padding.
+- **Board:** a three-column kanban grid (16–20px gaps) on desktop, or a list. Under 768px only the list exists, with the filter rail in a single row that scrolls horizontally and a 56px floating button in the bottom-right corner, lifted above the tab bar (as are toasts).
 - **Calendar:** a 240px filters column plus FullCalendar on desktop. On mobile, an agenda: a weekly strip inside a card, then days with sticky headers (offset under the nav) and lists of rows. Consecutive empty days collapse into one line.
 - The breakpoint is `md` (768px), with `useMobile()` = `(max-width: 767px)`. On coarse pointers, buttons, pills and inputs grow to at least 40px tall.
 - Rhythm: 24px between page blocks, 8px between cards, 12–16px between controls.
@@ -248,7 +248,7 @@ Every corner is soft. The scale runs: 4px for badges, 6px for buttons and inputs
 ### Navigation
 - **Style:** fixed translucent paper. Items get a 16px icon plus a label at 14px, 36px tall, with 8px corners.
 - **Active:** Niebla índigo background with an indigo icon. Inactive items use Tinta suave and turn stone on hover.
-- **Administration** lives in a dropdown with a shield icon. On mobile the logo shows only its mark, and the admin links go into the avatar menu along with "Cerrar sesión".
+- **Administration** lives in a dropdown with a shield icon. - **Mobile (< md):** the top bar keeps the full logo and the avatar menu only; the admin links go into the avatar menu along with "Cerrar sesión". The four main links move to a fixed bottom tab bar: translucent paper with a hairline on top, a 20px icon over an 11px label in equal-width tabs. The active tab puts the icon in a Niebla índigo capsule (about 56×28px) with Tinta índigo text; inactive tabs use Tinta tenue. The Notas counter sits on the icon corner. Dialogs and bottom sheets still cover the bar.
 
 ### Segmented control
 A stone track with 2px padding. The active option sits on paper with a fine border and a soft shadow, and its icon turns indigo. It switches Tablero/Lista and Mes/Semana/Día.

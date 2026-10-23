@@ -119,7 +119,7 @@ describe('Los contactos externos NUNCA reciben correo', () => {
   function mailSetup() {
     const sent: { to: string; subject: string; html: string; cc?: string[] }[] = [];
     const mail: any = { send: jest.fn(async (to: string, subject: string, html: string, _invite?: unknown, cc?: string[]) => { sent.push({ to, subject, html, cc }); return true; }) };
-    const notifications = new NotificationsService(mail, { get: (_k: string, d: any) => d } as any, { findOne: jest.fn(async () => ({ copyEmails: [] })) } as any);
+    const notifications = new NotificationsService(mail, { get: (_k: string, d: any) => d } as any, { findOne: jest.fn(async () => ({ copyEmails: [] })) } as any, { sendToUsers: jest.fn(async () => undefined) } as any);
     return { sent, notifications };
   }
 

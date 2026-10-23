@@ -13,6 +13,7 @@ import {
 import {
   computeEventRecipients, detectEventChanges, EventSnapshot, formatEventWhen, snapshotFromPayload,
 } from '../events/event-changes';
+import { PushService } from '../push/push.service';
 import { Change, computeRecipients } from '../tasks/task-changes';
 
 type U = { id: string; name: string; email: string; isActive: boolean };
@@ -73,6 +74,12 @@ export interface NoteAccessRequestedEvent {
   owner: U;
 }
 
+/** Resumen corto de los cambios para el cuerpo del push: etiquetas de los campos modificados. */
+export function changesSummary(changes: Change[]): string {
+  const labels = [...new Set(changes.map((c) => c.label))];
+  return labels.length > 3 ? `${labels.slice(0, 3).join(', ')} y más` : labels.join(', ');
+}
+
 export function reminderLabel(minutes: number): string {
   if (minutes >= 1440) return 'mañana';
   if (minutes >= 60) return minutes === 60 ? 'en 1 hora' : `en ${minutes / 60} horas`;
@@ -91,6 +98,7 @@ export class NotificationsService {
     private mail: MailService,
     config: ConfigService,
     @InjectRepository(User) private users: Repository<User>,
+    private push: PushService,
   ) {
     this.appUrl = config.get('APP_URL', 'http://localhost:3000');
     this.timeZone = config.get('APP_TIMEZONE', 'America/Santiago');
@@ -132,6 +140,9 @@ export class NotificationsService {
   async onAssigned(e: TaskAssignedEvent) {
     try {
       const { subject, html } = assignedEmail(this.appUrl, e.task, e.actor.name);
+      void this.push.sendToUsers(e.newAssignees.filter((u) => u.isActive).map((u) => u.id), {
+        title: 'Se te asignó una tarea', body: `${e.actor.name}: ${e.task.title}`, url: `/tasks/${e.task.id}`,
+      });
       for (const u of e.newAssignees) {
         if (!u.isActive) continue;
         await this.sendTo(u, subject, html);
@@ -145,6 +156,9 @@ export class NotificationsService {
   async onMentioned(e: TaskMentionedEvent) {
     try {
       const { subject, html } = mentionEmail(this.appUrl, e.task, e.actor.name, e.comment);
+      void this.push.sendToUsers(e.users.filter((u) => u.isActive).map((u) => u.id), {
+        title: `${e.actor.name} te mencionó`, body: e.task.title, url: `/tasks/${e.task.id}`,
+      });
       for (const u of e.users) {
         if (!u.isActive) continue;
         await this.sendTo(u, subject, html);
@@ -160,6 +174,9 @@ export class NotificationsService {
       const admins = await this.users.find({ where: { role: 'admin', isActive: true } });
       const recipients = computeRecipients(e.task.assignees, admins, e.excludeUserIds ?? []);
       const { subject, html } = changedEmail(this.appUrl, e.task, e.actor.name, e.changes);
+      void this.push.sendToUsers(recipients.map((u) => u.id), {
+        title: `Cambios en: ${e.task.title}`, body: `${e.actor.name} modificó ${changesSummary(e.changes)}`, url: `/tasks/${e.task.id}`,
+      });
       for (const u of recipients) await this.sendTo(u, subject, html);
     } catch (err) {
       this.logger.error(`task.changed: ${(err as Error).message}`);
@@ -170,6 +187,9 @@ export class NotificationsService {
   async onDue(e: TaskDueEvent) {
     try {
       const { subject, html } = dueEmail(this.appUrl, e.task, e.kind, new Date(e.task.dueDate));
+      void this.push.sendToUsers(e.task.assignees.filter((u) => u.isActive).map((u) => u.id), {
+        title: e.kind === 'due_soon' ? 'Tarea por vencer' : 'Tarea vencida', body: e.task.title, url: `/tasks/${e.task.id}`,
+      });
       for (const u of e.task.assignees) {
         if (u.isActive) await this.sendTo(u, subject, html);
       }
@@ -207,6 +227,9 @@ export class NotificationsService {
     try {
       const { subject, html } = eventInvitedEmail(this.appUrl, this.mailInfo(e.event), e.actor.name);
       const invite = this.invite(e.event, 'REQUEST');
+      void this.push.sendToUsers(e.newParticipants.filter((u) => u.isActive).map((u) => u.id), {
+        title: 'Te invitaron a un evento', body: `${e.event.title} · ${this.mailInfo(e.event).when}`, url: `/calendar?event=${e.event.id}`,
+      });
       for (const u of e.newParticipants) {
         if (!u.isActive) continue;
         await this.sendTo(u, subject, html, invite);
@@ -223,6 +246,9 @@ export class NotificationsService {
       if (changes.length === 0) return;
       const recipients = computeEventRecipients(e.event.participants, e.event.createdBy, e.excludeUserIds ?? []);
       const { subject, html } = eventChangedEmail(this.appUrl, e.event, e.actor.name, changes);
+      void this.push.sendToUsers(recipients.map((u) => u.id), {
+        title: `Cambios en el evento: ${e.event.title}`, body: `${e.actor.name} modificó ${changesSummary(changes)}`, url: `/calendar?event=${e.event.id}`,
+      });
       const invite = this.invite(e.event, 'REQUEST');
       for (const u of recipients) await this.sendTo(u, subject, html, invite);
     } catch (err) {
@@ -235,6 +261,9 @@ export class NotificationsService {
     try {
       const recipients = computeEventRecipients(e.event.participants, e.event.createdBy);
       const { subject, html } = eventCancelledEmail(this.appUrl, this.mailInfo(e.event), e.actor.name);
+      void this.push.sendToUsers(recipients.map((u) => u.id), {
+        title: 'Evento cancelado', body: `${e.actor.name} canceló ${e.event.title}`, url: '/calendar',
+      });
       const invite = this.invite(e.event, 'CANCEL');
       for (const u of recipients) await this.sendTo(u, subject, html, invite);
     } catch (err) {
@@ -247,6 +276,9 @@ export class NotificationsService {
     try {
       const recipients = computeEventRecipients(e.event.participants, e.event.createdBy);
       const { subject, html } = eventReminderEmail(this.appUrl, this.mailInfo(e.event), reminderLabel(e.minutes));
+      void this.push.sendToUsers(recipients.map((u) => u.id), {
+        title: `Recordatorio: ${e.event.title}`, body: `Empieza ${reminderLabel(e.minutes)}`, url: `/calendar?event=${e.event.id}`,
+      });
       const invite = this.invite(e.event, 'REQUEST');
       for (const u of recipients) await this.sendTo(u, subject, html, invite);
     } catch (err) {
@@ -269,6 +301,9 @@ export class NotificationsService {
     try {
       if (!e.owner.isActive) return;
       const { subject, html } = noteAccessRequestEmail(this.appUrl, e.note, e.actor.name);
+      void this.push.sendToUsers([e.owner.id], {
+        title: 'Solicitud de acceso a una nota', body: `${e.actor.name} solicita acceso a ${e.note.title}`, url: `/notes/${e.note.id}`,
+      });
       await this.sendTo(e.owner, subject, html);
     } catch (err) {
       this.logger.error(`note.access_requested: ${(err as Error).message}`);
@@ -282,6 +317,9 @@ export class NotificationsService {
     try {
       if (!e.user.isActive) return;
       const { subject, html } = noteSharedEmail(this.appUrl, e.note, e.actor.name, e.permission);
+      void this.push.sendToUsers([e.user.id], {
+        title: 'Te dieron acceso a una nota', body: `${e.actor.name}: ${e.note.title}`, url: `/notes/${e.note.id}`,
+      });
       await this.sendTo(e.user, subject, html);
     } catch (err) {
       this.logger.error(`note.shared: ${(err as Error).message}`);

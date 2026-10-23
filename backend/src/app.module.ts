@@ -19,6 +19,7 @@ import { HealthController } from './health/health.controller';
 import { MailModule } from './mail/mail.module';
 import { NotesModule } from './notes/notes.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { PushModule } from './push/push.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { StorageModule } from './storage/storage.module';
 import { TaskTypesModule } from './task-types/task-types.module';
@@ -43,6 +44,7 @@ import { UsersModule } from './users/users.module';
     StorageModule,
     AuditModule,
     MailModule,
+    PushModule,
     NotificationsModule,
     AuthModule,
     UsersModule,

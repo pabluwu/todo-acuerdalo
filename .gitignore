@@ -16,3 +16,15 @@ backend/uploads/
 .vscode/
 .idea/
 *.tsbuildinfo
+
+# Android (APK/TWA): nunca subir llaves ni binarios
+*.keystore
+*.jks
+*.apk
+*.aab
+mobile/android-twa/build/
+mobile/android-twa/.gradle/
+mobile/android-twa/app/
+mobile/android-twa/gradle/
+mobile/android-twa/gradlew*
+mobile/android-twa/local.properties

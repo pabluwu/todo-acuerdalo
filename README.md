@@ -133,3 +133,33 @@ cd ~/todo-acuerdalo && docker compose -f docker-compose.prod.yml exec backend np
 ```
 
 Para volver a una versión anterior, relanza el workflow (*Re-run jobs*) del commit deseado.
+
+## Instalar en iPhone
+
+La app se instala como PWA (no hace falta cuenta de Apple ni App Store). Requiere iOS 16.4 o superior.
+
+1. Abre https://todo.acuerdalo.cl en **Safari**.
+2. Toca **Compartir** → **Agregar a inicio**.
+3. Abre la app desde el ícono de la pantalla de inicio, entra a **Mi cuenta** y pulsa **Activar notificaciones**. En iPhone el push solo funciona con la app instalada.
+
+## Instalar en Android (APK)
+
+El APK es un envoltorio (TWA) del sitio, generado con Bubblewrap y firmado con un keystore propio. Los pasos están en [`mobile/android-twa/README.md`](mobile/android-twa/README.md). Para instalarlo: copia el `.apk` al teléfono, ábrelo y permite instalar desde "orígenes desconocidos". Luego activa las notificaciones en **Mi cuenta**.
+
+## Notificaciones push (VAPID)
+
+Además del correo, los avisos (asignaciones, cambios, menciones, vencimientos, eventos y notas compartidas) llegan como Web Push a los dispositivos donde el usuario las activó. El resumen semanal sigue siendo solo por correo.
+
+Genera las llaves una sola vez y agrégalas al `.env` de producción (`~/todo-acuerdalo/.env`):
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+```
+VAPID_PUBLIC_KEY=...
+VAPID_PRIVATE_KEY=...
+VAPID_SUBJECT=mailto:admin@acuerdalo.cl
+```
+
+Reinicia el backend. Sin estas variables el push queda desactivado y el correo sigue funcionando. No cambies las llaves después: invalidarían todas las suscripciones. El frontend obtiene la clave pública desde `GET /api/push/vapid-public-key`, así que no necesita variables en el build.

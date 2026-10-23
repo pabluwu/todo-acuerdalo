@@ -69,7 +69,7 @@ function AdminMenu({ path }: { path: string }) {
         aria-expanded={m.open}
         className={`flex h-9 items-center gap-2 rounded-lg px-3 text-sm transition-colors ${active ? 'bg-accent-soft font-medium text-indigo-900' : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'}`}
       >
-        <Shield {...icon} className={active ? 'text-accent' : ''} /> Administración
+        <Shield {...icon} className={active ? 'text-accent' : ''} /> <span className="max-lg:sr-only">Administración</span>
         <ChevronDown size={14} strokeWidth={1.5} aria-hidden className={`transition-transform ${m.open ? 'rotate-180' : ''}`} />
       </button>
       {m.open && (
@@ -137,8 +137,60 @@ function UserMenu({ path }: { path: string }) {
   );
 }
 
-export function Nav() {
+/** Enlaces principales de escritorio (≥ md), arriba junto al logo. */
+function DesktopNav({ path, pending }: { path: string; pending: number }) {
   const { user } = useAuth();
+  return (
+    <nav aria-label="Principal" className="hidden items-center gap-1 md:flex">
+      {MAIN.map((i) => {
+        const active = isActive(path, i.href);
+        return (
+          <Link
+            key={i.href}
+            href={i.href}
+            title={i.label}
+            aria-current={active ? 'page' : undefined}
+            className={`flex h-9 items-center gap-2 rounded-lg px-3 text-sm transition-colors ${active ? 'bg-accent-soft font-medium text-indigo-900' : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'}`}
+          >
+            <i.icon {...icon} className={active ? 'text-accent' : ''} />
+            {/* entre md y lg solo caben los iconos */}
+            <span className="max-lg:sr-only">{i.label}</span>
+            {i.href === '/notes' && pending > 0 && (
+              <span className="pill-count" aria-label={`${pending} solicitudes de acceso pendientes`}>{pending}</span>
+            )}
+          </Link>
+        );
+      })}
+      {user?.role === 'admin' && <AdminMenu path={path} />}
+    </nav>
+  );
+}
+
+/** Barra de pestañas fija abajo en móvil (< md): icono sobre etiqueta, cápsula en la activa. */
+function MobileTabBar({ path, pending }: { path: string; pending: number }) {
+  return (
+    <nav aria-label="Principal" className="tabbar">
+      <div className="mx-auto grid max-w-md grid-cols-4">
+        {MAIN.map((i) => {
+          const active = isActive(path, i.href);
+          return (
+            <Link key={i.href} href={i.href} aria-current={active ? 'page' : undefined} className="tabbar-item">
+              <span className="tabbar-icon">
+                <i.icon size={20} strokeWidth={1.5} aria-hidden />
+                {i.href === '/notes' && pending > 0 && (
+                  <span className="pill-count absolute right-1.5 top-0 ring-2 ring-white" aria-label={`${pending} solicitudes de acceso pendientes`}>{pending}</span>
+                )}
+              </span>
+              {i.label}
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
+export function Nav() {
   const path = usePathname();
   // solicitudes de acceso a mis notas privadas, pendientes de resolver
   const [pending, setPending] = useState(0);
@@ -146,35 +198,19 @@ export function Nav() {
     api<{ count: number }>('/notes/access-requests/pending/count').then((r) => setPending(r.count)).catch(() => undefined);
   }, [path]);
   return (
-    <header className="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-      <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between gap-3 px-4 md:px-6">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-6">
-          <Link href="/" className="shrink-0 rounded-md" aria-label="Acuérdalo, ir al tablero">
-            <Logo compact />
-          </Link>
-          <nav aria-label="Principal" className="flex items-center gap-1">
-            {MAIN.map((i) => {
-              const active = isActive(path, i.href);
-              return (
-                <Link
-                  key={i.href}
-                  href={i.href}
-                  aria-current={active ? 'page' : undefined}
-                  className={`flex h-9 items-center gap-2 rounded-lg px-3 text-sm transition-colors ${active ? 'bg-accent-soft font-medium text-indigo-900' : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'}`}
-                >
-                  <i.icon {...icon} className={active ? 'text-accent' : ''} />
-                  {i.label}
-                  {i.href === '/notes' && pending > 0 && (
-                    <span className="pill-count" aria-label={`${pending} solicitudes de acceso pendientes`}>{pending}</span>
-                  )}
-                </Link>
-              );
-            })}
-            {user?.role === 'admin' && <AdminMenu path={path} />}
-          </nav>
+    <>
+      <header className="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+        <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between gap-3 px-4 md:px-6">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-6">
+            <Link href="/" className="shrink-0 rounded-md" aria-label="Acuérdalo, ir al tablero">
+              <Logo />
+            </Link>
+            <DesktopNav path={path} pending={pending} />
+          </div>
+          <UserMenu path={path} />
         </div>
-        <UserMenu path={path} />
-      </div>
-    </header>
+      </header>
+      <MobileTabBar path={path} pending={pending} />
+    </>
   );
 }

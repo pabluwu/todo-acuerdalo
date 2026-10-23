@@ -152,8 +152,21 @@
 
   /* Botón flotante de crear en móvil */
   .fab {
-    @apply fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-5 z-20 inline-flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-[0_8px_20px_rgb(79_70_229/0.35),0_2px_6px_rgb(0_0_0/0.12)] transition-transform active:scale-95;
+    @apply fixed bottom-[calc(3.5rem+1rem+env(safe-area-inset-bottom))] right-5 z-20 inline-flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-[0_8px_20px_rgb(79_70_229/0.35),0_2px_6px_rgb(0_0_0/0.12)] transition-transform active:scale-95;
   }
+
+  /* Barra de pestañas inferior en móvil: los 4 enlaces principales al alcance del pulgar */
+  .tabbar {
+    @apply fixed inset-x-0 bottom-0 z-30 border-t border-zinc-200/80 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur supports-[backdrop-filter]:bg-white/80 md:hidden;
+  }
+  .tabbar-item {
+    @apply flex h-14 flex-col items-center justify-center gap-0.5 text-[11px] leading-none text-zinc-500;
+  }
+  .tabbar-item .tabbar-icon {
+    @apply relative flex h-7 w-14 items-center justify-center rounded-full transition-colors duration-150;
+  }
+  .tabbar-item[aria-current='page'] { @apply font-medium text-indigo-900; }
+  .tabbar-item[aria-current='page'] .tabbar-icon { @apply bg-accent-soft text-accent; }
 
   .avatar {
     background: var(--ev-bg);

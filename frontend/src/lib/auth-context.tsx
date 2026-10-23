@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from './api';
+import { disablePush } from './push';
 import { BoardSkeleton } from '@/components/Skeletons';
 import type { User } from './types';
 
@@ -32,6 +33,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   const logout = useCallback(async () => {
+    // antes de cerrar sesión, para que este dispositivo no siga recibiendo avisos del usuario saliente
+    await disablePush();
     await api('/auth/logout', { method: 'POST' }).catch(() => undefined);
     router.replace('/login');
   }, [router]);
