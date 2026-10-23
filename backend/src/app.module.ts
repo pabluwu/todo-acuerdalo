@@ -11,6 +11,7 @@ import { AuditInterceptor } from './common/audit.interceptor';
 import { JwtAuthGuard, RolesGuard } from './common/guards';
 import { typeOrmConfig } from './database/typeorm.config';
 import { EntitiesModule } from './database/entities.module';
+import { ClientsModule } from './clients/clients.module';
 import { ContactsModule } from './contacts/contacts.module';
 import { EventsModule } from './events/events.module';
 import { CommentsModule } from './comments/comments.module';
@@ -51,6 +52,7 @@ import { UsersModule } from './users/users.module';
     ContactsModule,
     EventsModule,
     NotesModule,
+    ClientsModule,
     SchedulerModule,
   ],
   controllers: [HealthController],

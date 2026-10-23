@@ -1,6 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { Avatar } from '../Avatar';
+import { ExternalTag } from './ContactPicker';
 import type { ExternalContact, UserLite } from '@/lib/types';
 
 /** Filtros de agenda: personas (con su color), contactos externos y capa de tareas. */
@@ -60,16 +62,22 @@ export function CalendarFilters({
 
       {contacts.length > 0 && (
         <section aria-labelledby="f-contacts" className="space-y-2.5">
-          <h3 id="f-contacts" className="section-label">Personas externas</h3>
+          <h3 id="f-contacts" className="section-label">Clientes y personas externas</h3>
           <ul className="-mx-1 max-h-56 space-y-px overflow-y-auto">
             {contacts.map((c) => (
               <li key={c.id}>
                 <label className="flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1.5 text-sm hover:bg-zinc-50 max-md:py-2">
                   <input type="checkbox" className={check} checked={selectedContacts.includes(c.id)} onChange={() => onContacts(toggle(selectedContacts, c.id))} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-zinc-800">{c.name}</span>
-                    <span className="block truncate text-xs text-zinc-500">{c.email}</span>
+                    <span className="flex items-center gap-2">
+                      <span className="truncate text-zinc-800">{c.name}</span>
+                      {c.clientId && <ExternalTag client />}
+                    </span>
+                    {c.email && <span className="block truncate text-xs text-zinc-500">{c.email}</span>}
                   </span>
+                  {c.clientId && (
+                    <Link href={`/clients/${c.clientId}`} className="shrink-0 text-xs text-accent hover:underline" aria-label={`Abrir la ficha de ${c.name}`}>Ficha</Link>
+                  )}
                 </label>
               </li>
             ))}

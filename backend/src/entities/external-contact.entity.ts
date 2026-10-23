@@ -9,8 +9,13 @@ export class ExternalContact {
   @Column({ type: 'varchar', length: 200 })
   name!: string;
 
-  @Column({ type: 'varchar', length: 320 })
-  email!: string;
+  /** Los contactos vinculados a un cliente pueden no tener correo. */
+  @Column({ type: 'varchar', length: 320, nullable: true })
+  email!: string | null;
+
+  /** Cliente al que está vinculado; se mantiene sincronizado desde la ficha del cliente. */
+  @Column({ name: 'client_id', type: 'uuid', nullable: true, unique: true })
+  clientId!: string | null;
 
   @Column({ name: 'created_by', type: 'uuid', nullable: true })
   createdById!: string | null;

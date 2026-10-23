@@ -4,9 +4,8 @@ import {
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { AuthUser, CurrentUser } from '../common/decorators';
+import { sendFile } from '../common/send-file';
 import { CommentsService } from './comments.service';
-
-const INLINE_TYPES = /^(image\/(png|jpe?g|gif|webp|avif)|application\/pdf)$/i;
 
 @Controller()
 export class CommentsController {
@@ -36,16 +35,6 @@ export class CommentsController {
     @Res() res: Response,
   ) {
     const { attachment, stream } = await this.comments.getAttachment(id);
-    const inline = download !== '1' && INLINE_TYPES.test(attachment.mimeType);
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.type(inline ? attachment.mimeType : 'application/octet-stream');
-    res.setHeader(
-      'Content-Disposition',
-      `${inline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(attachment.originalName)}`,
-    );
-    res.setHeader('Content-Length', String(attachment.size));
-    res.setHeader('Cache-Control', 'private, max-age=3600');
-    stream.on('error', () => res.destroy());
-    stream.pipe(res);
+    sendFile(res, attachment, stream, download);
   }
 }

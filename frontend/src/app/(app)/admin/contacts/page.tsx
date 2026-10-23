@@ -1,8 +1,10 @@
 'use client';
 
 import { Pencil, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { AdminGuard } from '@/components/AdminGuard';
+import { ExternalTag } from '@/components/calendar/ContactPicker';
 import { TableSkeleton } from '@/components/Skeletons';
 import { api } from '@/lib/api';
 import { icon } from '@/lib/icons';
@@ -42,13 +44,13 @@ function ContactsTable() {
   }
 
   const term = q.trim().toLowerCase();
-  const list = (contacts ?? []).filter((c) => !term || c.name.toLowerCase().includes(term) || c.email.toLowerCase().includes(term));
+  const list = (contacts ?? []).filter((c) => !term || c.name.toLowerCase().includes(term) || (c.email ?? '').toLowerCase().includes(term));
 
   return (
     <div className="space-y-8">
       <div className="space-y-1">
         <h1 className="text-xl font-semibold tracking-tight">Contactos externos</h1>
-        <p className="max-w-2xl text-sm text-zinc-600">Personas ajenas al equipo que se agregan a los eventos del calendario. Son solo para seguimiento: nunca reciben correos. Eliminar un contacto lo quita de todos los eventos.</p>
+        <p className="max-w-2xl text-sm text-zinc-600">Personas ajenas al equipo (y los clientes, que se mantienen desde su ficha) que se agregan a los eventos del calendario. Son solo para seguimiento: nunca reciben correos. Eliminar un contacto lo quita de todos los eventos.</p>
       </div>
       <input aria-label="Buscar contactos" className="w-full max-w-sm" placeholder="Buscar por nombre o correo" value={q} onChange={(e) => setQ(e.target.value)} />
       {!contacts ? <TableSkeleton /> : list.length === 0 ? (
@@ -77,10 +79,20 @@ function ContactsTable() {
                 </tr>
               ) : (
                 <tr key={c.id}>
-                  <td data-label="Nombre" className="font-medium">{c.name}</td>
-                  <td data-label="Correo" className="min-w-0 break-all text-zinc-600">{c.email}</td>
+                  <td data-label="Nombre" className="font-medium">
+                    <span className="flex flex-wrap items-center gap-2">
+                      {c.name}
+                      {c.clientId && <ExternalTag client />}
+                    </span>
+                  </td>
+                  <td data-label="Correo" className="min-w-0 break-all text-zinc-600">{c.email ?? <span className="text-zinc-400">Sin correo</span>}</td>
                   <td className="md:text-right max-md:!justify-start max-md:pt-2">
-                    {confirm === c.id ? (
+                    {c.clientId ? (
+                      <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                        <span className="text-xs text-zinc-500">Se edita desde la ficha</span>
+                        <Link href={`/clients/${c.clientId}`} className="btn btn-sm">Abrir ficha</Link>
+                      </div>
+                    ) : confirm === c.id ? (
                       <div className="flex flex-wrap items-center gap-2 md:justify-end">
                         <span className="text-xs text-zinc-600">¿Eliminar de todos los eventos?</span>
                         <button className="btn-danger btn-sm" onClick={() => remove(c.id)}>Sí, eliminar</button>
@@ -88,7 +100,7 @@ function ContactsTable() {
                       </div>
                     ) : (
                       <div className="flex flex-wrap gap-2 md:justify-end">
-                        <button className="btn btn-sm" onClick={() => { setEditing(c.id); setName(c.name); setEmail(c.email); }}><Pencil {...icon} /> Editar</button>
+                        <button className="btn btn-sm" onClick={() => { setEditing(c.id); setName(c.name); setEmail(c.email ?? ''); }}><Pencil {...icon} /> Editar</button>
                         <button className="btn btn-sm" onClick={() => setConfirm(c.id)}><Trash2 {...icon} /> Eliminar</button>
                       </div>
                     )}

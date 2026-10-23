@@ -134,7 +134,7 @@ export function EventDialog({
       startAt: allDay ? `${start}T00:00:00.000Z` : fromLocalInput(start),
       endAt: allDay ? `${addDaysStr(end, 1)}T00:00:00.000Z` : fromLocalInput(end),
       participantIds: participants,
-      externalContacts: externals.map((c) => (c.id ? { id: c.id } : { name: c.name, email: c.email })),
+      externalContacts: externals.map((c) => (c.id ? { id: c.id } : { name: c.name, email: c.email ?? '' })),
     };
     try {
       const saved = await api<CalendarEvent>(editing ? `/events/${event!.id}` : '/events', { method: editing ? 'PATCH' : 'POST', body });

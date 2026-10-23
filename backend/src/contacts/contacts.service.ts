@@ -15,7 +15,7 @@ export interface ContactInput {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function presentContact(c: ExternalContact) {
-  return { id: c.id, name: c.name, email: c.email };
+  return { id: c.id, name: c.name, email: c.email, clientId: c.clientId };
 }
 
 @Injectable()
@@ -43,9 +43,10 @@ export class ContactsService {
   async update(id: string, dto: UpdateContactDto, actor: AuthUser) {
     const contact = await this.contacts.findOne({ where: { id } });
     if (!contact) throw new NotFoundException('Contacto no encontrado');
+    this.assertNotClient(contact);
     const before = presentContact(contact);
     if (dto.name !== undefined) contact.name = dto.name.trim();
-    if (dto.email !== undefined && dto.email.trim().toLowerCase() !== contact.email.toLowerCase()) {
+    if (dto.email !== undefined && dto.email.trim().toLowerCase() !== (contact.email ?? '').toLowerCase()) {
       const clash = await this.findByEmail(dto.email);
       if (clash && clash.id !== id) throw new ConflictException('Ya existe un contacto con ese correo');
       contact.email = dto.email.trim();
@@ -61,10 +62,16 @@ export class ContactsService {
   async remove(id: string, actor: AuthUser) {
     const contact = await this.contacts.findOne({ where: { id } });
     if (!contact) throw new NotFoundException('Contacto no encontrado');
+    this.assertNotClient(contact);
     const before = presentContact(contact);
     await this.contacts.delete(id);
     await this.audit.log(actor, 'contact.delete', 'contact', id, before, null);
     return { ok: true };
+  }
+
+  /** Los contactos de un cliente se mantienen desde su ficha, no desde el directorio. */
+  private assertNotClient(contact: ExternalContact) {
+    if (contact.clientId) throw new BadRequestException('Se edita desde la ficha del cliente');
   }
 
   private findByEmail(email: string) {

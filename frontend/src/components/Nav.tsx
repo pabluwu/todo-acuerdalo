@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  CalendarDays, ChevronDown, Contact, LayoutDashboard, LogOut, NotebookPen, ScrollText, Shield, Tags, UserRound, Users, type LucideIcon,
+  BriefcaseBusiness, CalendarDays, ChevronDown, Contact, LayoutDashboard, LogOut, NotebookPen, ScrollText, Shield, Tags, UserRound, Users, type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -19,6 +19,7 @@ const MAIN: NavItem[] = [
   { href: '/', label: 'Tablero', icon: LayoutDashboard },
   { href: '/calendar', label: 'Calendario', icon: CalendarDays },
   { href: '/notes', label: 'Notas', icon: NotebookPen },
+  { href: '/clients', label: 'Clientes', icon: BriefcaseBusiness },
 ];
 const ADMIN: NavItem[] = [
   { href: '/admin/users', label: 'Usuarios', icon: Users },

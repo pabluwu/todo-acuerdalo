@@ -10,12 +10,18 @@ import type { ExternalContact } from '@/lib/types';
 export interface ContactValue {
   id?: string;
   name: string;
-  email: string;
+  /** Los clientes pueden no tener correo */
+  email: string | null;
+  clientId?: string | null;
 }
 
-export function ExternalTag() {
-  return <span className="shrink-0 rounded border border-zinc-200 px-1.5 py-px text-[11px] leading-4 text-zinc-600">Externo</span>;
+/** «Cliente» si el contacto está vinculado a una ficha de cliente; si no, «Externo». */
+export function ExternalTag({ client = false }: { client?: boolean }) {
+  return <span className="shrink-0 rounded border border-zinc-200 px-1.5 py-px text-[11px] leading-4 text-zinc-600">{client ? 'Cliente' : 'Externo'}</span>;
 }
+
+/** Los contactos del directorio se identifican por `id`; los nuevos (sin id) por su correo. */
+const keyOf = (c: { id?: string; email: string | null }) => c.id ?? (c.email ?? '').toLowerCase();
 
 /**
  * Selector de contactos externos del directorio. Si no hay coincidencia permite
@@ -57,15 +63,16 @@ export function ContactPicker({
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
-  const taken = new Set(value.map((v) => v.email.toLowerCase()));
-  const options = results.filter((c) => !taken.has(c.email.toLowerCase())).slice(0, 30);
+  const takenIds = new Set(value.filter((v) => v.id).map((v) => v.id));
+  const takenEmails = new Set(value.filter((v) => v.email).map((v) => v.email!.toLowerCase()));
+  const options = results.filter((c) => !takenIds.has(c.id) && !(c.email && takenEmails.has(c.email.toLowerCase()))).slice(0, 30);
   const term = q.trim();
-  const exact = results.some((c) => c.email.toLowerCase() === term.toLowerCase());
-  const canAdd = term.length > 0 && !exact && !taken.has(term.toLowerCase());
+  const exact = results.some((c) => c.email?.toLowerCase() === term.toLowerCase());
+  const canAdd = term.length > 0 && !exact && !takenEmails.has(term.toLowerCase());
   const rows = canAdd ? options.length + 1 : options.length;
 
   function pick(c: ExternalContact) {
-    onChange([...value, { id: c.id, name: c.name, email: c.email }]);
+    onChange([...value, { id: c.id, name: c.name, email: c.email, clientId: c.clientId }]);
     setQ('');
     setActive(0);
     inputRef.current?.focus();
@@ -85,7 +92,7 @@ export function ContactPicker({
     const email = newEmail.trim();
     if (!name) return setFormError('Escribe el nombre de la persona.');
     if (!isEmail(email)) return setFormError('Escribe un correo válido, por ejemplo nombre@empresa.com.');
-    if (taken.has(email.toLowerCase())) return setFormError('Esa persona ya está en el evento.');
+    if (takenEmails.has(email.toLowerCase())) return setFormError('Esa persona ya está en el evento.');
     onChange([...value, { name, email }]);
     setAdding(false);
     setOpen(false);
@@ -117,16 +124,16 @@ export function ContactPicker({
       {value.length > 0 && (
         <ul className="divide-y divide-zinc-100 rounded-md border border-zinc-200 bg-white">
           {value.map((c) => (
-            <li key={c.email} className="flex items-center gap-2 px-3 py-2 text-sm">
+            <li key={keyOf(c)} className="flex items-center gap-2 px-3 py-2 text-sm">
               <UserRound {...icon} className="shrink-0 text-zinc-400" />
               <span className="min-w-0 flex-1">
                 <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                   <span className="truncate font-medium text-zinc-800">{c.name}</span>
-                  <ExternalTag />
+                  <ExternalTag client={!!c.clientId} />
                 </span>
-                <span className="block truncate text-xs text-zinc-500">{c.email}</span>
+                {c.email && <span className="block truncate text-xs text-zinc-500">{c.email}</span>}
               </span>
-              <button type="button" aria-label={`Quitar a ${c.name}`} className="btn-ghost btn-icon btn-sm shrink-0" onClick={() => onChange(value.filter((v) => v.email !== c.email))}>
+              <button type="button" aria-label={`Quitar a ${c.name}`} className="btn-ghost btn-icon btn-sm shrink-0" onClick={() => onChange(value.filter((v) => keyOf(v) !== keyOf(c)))}>
                 <X {...icon} />
               </button>
             </li>
@@ -145,13 +152,13 @@ export function ContactPicker({
           aria-activedescendant={open && rows > 0 ? `${listId}-${active}` : undefined}
           autoComplete="off"
           className="w-full"
-          placeholder="Buscar por nombre o correo…"
+          placeholder="Buscar cliente o contacto…"
           value={q}
           onFocus={() => setOpen(true)}
           onChange={(e) => { setQ(e.target.value); setActive(0); setOpen(true); setAdding(false); }}
         />
         {open && (
-          <ul id={listId} role="listbox" aria-label="Contactos externos" className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-zinc-200 bg-white p-1 shadow-md">
+          <ul id={listId} role="listbox" aria-label="Clientes y contactos externos" className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-zinc-200 bg-white p-1 shadow-md">
             {options.map((c, i) => (
               <li
                 key={c.id}
@@ -163,8 +170,11 @@ export function ContactPicker({
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => pick(c)}
               >
-                <span className="truncate">{c.name}</span>
-                <span className="truncate text-xs text-zinc-500">{c.email}</span>
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="truncate">{c.name}</span>
+                  {c.clientId && <ExternalTag client />}
+                </span>
+                {c.email && <span className="truncate text-xs text-zinc-500">{c.email}</span>}
               </li>
             ))}
             {canAdd && (
@@ -180,7 +190,7 @@ export function ContactPicker({
                 <Plus {...icon} className="shrink-0" /> <span className="truncate">Agregar «{term}» al directorio</span>
               </li>
             )}
-            {options.length === 0 && !canAdd && <li className="px-2 py-2 text-sm text-zinc-500">{term ? 'Ese contacto ya está agregado.' : 'Aún no hay contactos en el directorio.'}</li>}
+            {options.length === 0 && !canAdd && <li className="px-2 py-2 text-sm text-zinc-500">{term ? 'Ese contacto ya está agregado.' : 'Aún no hay clientes ni contactos en el directorio.'}</li>}
           </ul>
         )}
       </div>

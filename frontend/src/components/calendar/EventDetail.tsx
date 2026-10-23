@@ -1,6 +1,7 @@
 'use client';
 
 import { Bell, CalendarClock, MapPin, Pencil, Trash2, X } from 'lucide-react';
+import Link from 'next/link';
 import { useId, useState } from 'react';
 import { formatDate } from '@/lib/api';
 import { eventWhen, reminderLabel } from '@/lib/calendar';
@@ -83,13 +84,17 @@ export function EventDetail({
 
           {event.externalContacts.length > 0 && (
             <section className="space-y-2.5">
-              <h3 className="section-label">Personas externas (<span className="tabular-nums">{event.externalContacts.length}</span>)</h3>
+              <h3 className="section-label">Clientes y personas externas (<span className="tabular-nums">{event.externalContacts.length}</span>)</h3>
               <ul className="space-y-2">
                 {event.externalContacts.map((c) => (
                   <li key={c.id} className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-sm">
-                    <span className="font-medium text-zinc-800">{c.name}</span>
-                    <ExternalTag />
-                    <span className="min-w-0 break-all text-xs text-zinc-500">{c.email}</span>
+                    {c.clientId ? (
+                      <Link href={`/clients/${c.clientId}`} className="font-medium text-accent hover:underline">{c.name}</Link>
+                    ) : (
+                      <span className="font-medium text-zinc-800">{c.name}</span>
+                    )}
+                    <ExternalTag client={!!c.clientId} />
+                    {c.email && <span className="min-w-0 break-all text-xs text-zinc-500">{c.email}</span>}
                   </li>
                 ))}
               </ul>

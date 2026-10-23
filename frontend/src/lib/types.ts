@@ -83,7 +83,10 @@ export interface Paginated<T> {
 export interface ExternalContact {
   id: string;
   name: string;
-  email: string;
+  /** Los contactos de un cliente pueden no tener correo */
+  email: string | null;
+  /** Cliente al que está vinculado; se edita desde su ficha */
+  clientId: string | null;
 }
 
 export interface CalendarEvent {
@@ -150,6 +153,84 @@ export interface NoteNoAccess {
   requestStatus: 'pending' | 'rejected' | null;
 }
 
+export interface ClientSummary {
+  id: string;
+  name: string;
+  rut: string | null;
+  matter: string | null;
+  defendantName: string | null;
+  updatedBy: { id: string; name: string } | null;
+  noteCount: number;
+  fileCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Client {
+  id: string;
+  name: string;
+  rut: string | null;
+  claveUnica: string | null;
+  address: string | null;
+  email: string | null;
+  phone: string | null;
+  occupation: string | null;
+  maritalStatus: string | null;
+  matter: string | null;
+  defendantName: string | null;
+  defendantRut: string | null;
+  defendantAddress: string | null;
+  defendantIncome: string | null;
+  caseHistory: string;
+  createdBy: { id: string; name: string } | null;
+  updatedBy: { id: string; name: string } | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClientNoteSummary {
+  id: string;
+  clientId: string;
+  title: string;
+  excerpt: string;
+  author: { id: string; name: string } | null;
+  updatedBy: { id: string; name: string } | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClientNote extends Omit<ClientNoteSummary, 'excerpt'> {
+  body: string;
+}
+
+export interface ClientFolder {
+  id: string;
+  name: string;
+  parentId: string | null;
+  /** Carpetas y archivos que contiene, a cualquier profundidad */
+  itemCount: number;
+  createdBy: { id: string; name: string } | null;
+  createdAt: string;
+}
+
+export interface ClientFile {
+  id: string;
+  folderId: string | null;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  uploadedBy: { id: string; name: string } | null;
+  createdAt: string;
+}
+
+export interface FolderListing {
+  folder: { id: string; name: string; parentId: string | null } | null;
+  /** De la carpeta de primer nivel hasta la actual (vacío en la raíz) */
+  breadcrumb: { id: string; name: string }[];
+  folders: ClientFolder[];
+  files: ClientFile[];
+}
+
 /** `tint` pinta el fondo de la columna; `fg` el ícono y la insignia de estado. */
 export const STATUSES: { id: TaskStatus; label: string; dot: string; icon: LucideIcon; tint: string; fg: string; badge: string }[] = [
   { id: 'not_started', label: 'Sin iniciar', dot: 'bg-zinc-400', icon: Circle, tint: 'bg-stone-100/80', fg: 'text-zinc-500', badge: 'bg-white text-zinc-600 ring-zinc-200' },
@@ -190,6 +271,18 @@ export const ACTION_LABELS: Record<string, string> = {
   'note.share': 'Compartió nota',
   'note.access_request': 'Solicitó acceso a una nota',
   'note.access_resolve': 'Resolvió una solicitud de acceso a nota',
+  'client.create': 'Registró cliente',
+  'client.update': 'Editó cliente',
+  'client.delete': 'Eliminó cliente',
+  'client_note.create': 'Creó nota de cliente',
+  'client_note.update': 'Editó nota de cliente',
+  'client_note.delete': 'Eliminó nota de cliente',
+  'client_folder.create': 'Creó carpeta de cliente',
+  'client_folder.rename': 'Renombró carpeta de cliente',
+  'client_folder.delete': 'Eliminó carpeta de cliente',
+  'client_file.create': 'Subió archivo de cliente',
+  'client_file.rename': 'Renombró archivo de cliente',
+  'client_file.delete': 'Eliminó archivo de cliente',
   'comment.create': 'Comentó',
   'attachment.create': 'Adjuntó archivo',
   'http.request': 'Petición HTTP',
@@ -202,6 +295,10 @@ export const ENTITY_LABELS: Record<string, string> = {
   contact: 'Contacto externo',
   user: 'Usuario',
   note: 'Nota',
+  client: 'Cliente',
+  client_note: 'Nota de cliente',
+  client_folder: 'Carpeta de cliente',
+  client_file: 'Archivo de cliente',
   comment: 'Comentario',
   attachment: 'Adjunto',
   http: 'HTTP',
