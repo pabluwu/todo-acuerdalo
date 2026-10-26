@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, FileQuestion, FolderOpen, IdCard, NotebookPen } from 'lucide-react';
+import { ArrowLeft, CalendarDays, FileQuestion, FolderOpen, IdCard, ListChecks, NotebookPen } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -11,12 +11,16 @@ import type { Client } from '@/lib/types';
 import { EmptyState } from '../EmptyState';
 import { PanelSkeleton } from '../Skeletons';
 import { ClientFiles } from './ClientFiles';
+import { ClientMeetings } from './ClientMeetings';
 import { ClientNotes } from './ClientNotes';
 import { ClientProfile } from './ClientProfile';
+import { ClientTasks } from './ClientTasks';
 
-type Tab = 'ficha' | 'notas' | 'archivos';
+type Tab = 'ficha' | 'tareas' | 'reuniones' | 'notas' | 'archivos';
 const TABS: { id: Tab; label: string; icon: typeof IdCard }[] = [
   { id: 'ficha', label: 'Ficha', icon: IdCard },
+  { id: 'tareas', label: 'Tareas', icon: ListChecks },
+  { id: 'reuniones', label: 'Reuniones', icon: CalendarDays },
   { id: 'notas', label: 'Notas', icon: NotebookPen },
   { id: 'archivos', label: 'Archivos', icon: FolderOpen },
 ];
@@ -27,7 +31,7 @@ export function ClientPage({ clientId }: { clientId: string }) {
   const toast = useToast();
   const params = useSearchParams();
   const raw = params.get('tab');
-  const tab: Tab = raw === 'notas' || raw === 'archivos' ? raw : 'ficha';
+  const tab: Tab = raw === 'tareas' || raw === 'reuniones' || raw === 'notas' || raw === 'archivos' ? raw : 'ficha';
   const [client, setClient] = useState<Client | null>(null);
   const [notFound, setNotFound] = useState(false);
 
@@ -75,6 +79,8 @@ export function ClientPage({ clientId }: { clientId: string }) {
         ))}
       </div>
       {tab === 'ficha' && <ClientProfile client={client} onChange={setClient} />}
+      {tab === 'tareas' && <ClientTasks clientId={clientId} clientName={client.name} />}
+      {tab === 'reuniones' && <ClientMeetings clientId={clientId} clientName={client.name} />}
       {tab === 'notas' && <ClientNotes clientId={clientId} />}
       {tab === 'archivos' && <ClientFiles clientId={clientId} clientName={client.name} />}
     </div>

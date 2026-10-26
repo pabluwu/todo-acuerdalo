@@ -35,6 +35,7 @@ export interface Task {
   type: TaskType | null;
   dueDate: string | null;
   position: number;
+  client: { id: string; name: string } | null;
   createdBy: { id: string; name: string } | null;
   assignees: UserLite[];
   createdAt: string;

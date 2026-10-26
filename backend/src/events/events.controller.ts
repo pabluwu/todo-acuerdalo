@@ -18,6 +18,12 @@ export class EventsController {
     return this.events.conflicts(q);
   }
 
+  // debe ir antes de ':id'
+  @Get('client/:clientId')
+  forClient(@Param('clientId', ParseUUIDPipe) clientId: string) {
+    return this.events.listForClient(clientId);
+  }
+
   @Post()
   create(@Body() dto: CreateEventDto, @CurrentUser() user: AuthUser) {
     return this.events.create(dto, user);

@@ -31,7 +31,7 @@ function setup(event: any = makeEvent()) {
   const contacts: any = { resolve: jest.fn(async () => [EXTERNAL]) };
   const audit: any = { log: jest.fn() };
   const emitter: any = { emit: jest.fn() };
-  const svc = new EventsService(events, users, contacts, audit, emitter);
+  const svc = new EventsService(events, users, {} as any, contacts, audit, emitter);
   return { svc, events, audit, emitter, event, contacts };
 }
 

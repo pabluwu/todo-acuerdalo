@@ -34,12 +34,17 @@ export function EventDialog({
   users,
   event,
   draft,
+  initialTitle,
+  initialExternals,
   onClose,
   onSaved,
 }: {
   users: UserLite[];
   event?: CalendarEvent | null;
   draft?: EventDraft | null;
+  /** Valores de partida al crear (p. ej. desde la ficha de un cliente). */
+  initialTitle?: string;
+  initialExternals?: ContactValue[];
   onClose: () => void;
   onSaved: (e: CalendarEvent) => void;
 }) {
@@ -48,7 +53,7 @@ export function EventDialog({
   const editing = !!event;
   const init = useMemo(() => draft ?? defaultDraft(), [draft]);
 
-  const [title, setTitle] = useState(event?.title ?? '');
+  const [title, setTitle] = useState(event?.title ?? initialTitle ?? '');
   const [allDay, setAllDay] = useState(event?.allDay ?? init.allDay);
   const [start, setStart] = useState(() => {
     if (event) return event.allDay ? utcDateStr(event.startAt) : toLocalInput(event.startAt);
@@ -64,7 +69,7 @@ export function EventDialog({
   const [color, setColor] = useState(event?.color ?? 'accent');
   const [reminder, setReminder] = useState<number | null>(event?.reminderMinutes ?? null);
   const [participants, setParticipants] = useState<string[]>(event ? event.participants.map((p) => p.id) : user ? [user.id] : []);
-  const [externals, setExternals] = useState<ContactValue[]>(event?.externalContacts.map((c) => ({ ...c })) ?? []);
+  const [externals, setExternals] = useState<ContactValue[]>(event?.externalContacts.map((c) => ({ ...c })) ?? initialExternals ?? []);
   const [conflicts, setConflicts] = useState<Conflicts>({});
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);

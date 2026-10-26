@@ -25,6 +25,9 @@ export class CreateTaskDto {
 
   @IsOptional() @IsArray() @IsUUID('all', { each: true })
   assigneeIds?: string[];
+
+  @IsOptional() @IsUUID()
+  clientId?: string;
 }
 
 export class UpdateTaskDto {
@@ -48,6 +51,9 @@ export class UpdateTaskDto {
 
   @IsOptional() @IsArray() @IsUUID('all', { each: true })
   assigneeIds?: string[];
+
+  @IsOptional() @ValidateIf((_o, v) => v !== null) @IsUUID()
+  clientId?: string | null;
 }
 
 export class MoveTaskDto {
@@ -71,4 +77,7 @@ export class TaskQueryDto {
 
   @IsOptional() @IsUUID()
   typeId?: string;
+
+  @IsOptional() @IsUUID()
+  clientId?: string;
 }

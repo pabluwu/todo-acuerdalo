@@ -14,11 +14,16 @@ export function NewTaskDialog({
   types,
   onClose,
   onCreated,
+  clientId,
+  clientName,
 }: {
   users: UserLite[];
   types: TaskType[];
   onClose: () => void;
   onCreated: (t: Task) => void;
+  /** Si viene, la tarea queda ligada a este cliente. */
+  clientId?: string;
+  clientName?: string;
 }) {
   const headingId = useId();
   const [title, setTitle] = useState('');
@@ -38,7 +43,7 @@ export function NewTaskDialog({
     try {
       const task = await api<Task>('/tasks', {
         method: 'POST',
-        body: { title, description, typeId, priority, status, dueDate: fromLocalInput(due), assigneeIds: assignees },
+        body: { title, description, typeId, priority, status, dueDate: fromLocalInput(due), assigneeIds: assignees, ...(clientId ? { clientId } : {}) },
       });
       onCreated(task);
     } catch (err) {
@@ -51,7 +56,7 @@ export function NewTaskDialog({
     <Dialog labelledBy={headingId} onClose={onClose}>
       <form onSubmit={submit} className="space-y-5">
         <div className="flex items-center justify-between">
-          <h2 id={headingId} className="text-base font-semibold tracking-tight">Nueva tarea</h2>
+          <h2 id={headingId} className="text-base font-semibold tracking-tight">{clientName ? `Nueva tarea para ${clientName}` : 'Nueva tarea'}</h2>
           <button type="button" onClick={onClose} aria-label="Cerrar" className="btn-ghost btn-icon btn-sm -mr-2"><X {...icon} /></button>
         </div>
         <Field label="Título">

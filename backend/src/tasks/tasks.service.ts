@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators';
+import { Client } from '../entities/client.entity';
 import { Comment } from '../entities/comment.entity';
 import { TaskType } from '../entities/task-type.entity';
 import { Task, TaskPriority, TaskStatus } from '../entities/task.entity';
@@ -25,6 +26,7 @@ export class TasksService {
     @InjectRepository(Task) private tasks: Repository<Task>,
     @InjectRepository(User) private users: Repository<User>,
     @InjectRepository(TaskType) private types: Repository<TaskType>,
+    @InjectRepository(Client) private clients: Repository<Client>,
     @InjectRepository(Comment) private comments: Repository<Comment>,
     private audit: AuditService,
     private events: EventEmitter2,
@@ -36,11 +38,14 @@ export class TasksService {
       .createQueryBuilder('task')
       .leftJoinAndSelect('task.assignees', 'assignee')
       .leftJoinAndSelect('task.type', 'type')
-      .leftJoinAndSelect('task.createdBy', 'createdBy');
+      .leftJoinAndSelect('task.createdBy', 'createdBy')
+      .leftJoin('task.client', 'client')
+      .addSelect(['client.id', 'client.name']);
     if (q.assigneeId)
       qb.andWhere('task.id IN (SELECT ta.task_id FROM task_assignees ta WHERE ta.user_id = :aid)', { aid: q.assigneeId });
     if (q.priority) qb.andWhere('task.priority = :p', { p: q.priority });
     if (q.typeId) qb.andWhere('task.type_id = :t', { t: q.typeId });
+    if (q.clientId) qb.andWhere('task.client_id = :cid', { cid: q.clientId });
     qb.orderBy('task.position', 'ASC').addOrderBy('task.createdAt', 'DESC');
     const rows = await qb.getMany();
     return rows.map((t) => this.present(t));
@@ -53,6 +58,10 @@ export class TasksService {
   async getOrFail(id: string): Promise<Task> {
     const task = await this.tasks.findOne({ where: { id } });
     if (!task) throw new NotFoundException('Tarea no encontrada');
+    // el cliente no es eager (tiene relaciones propias): se cargan solo id y nombre
+    task.client = task.clientId
+      ? await this.clients.findOne({ where: { id: task.clientId }, select: { id: true, name: true } })
+      : null;
     return task;
   }
 
@@ -65,6 +74,7 @@ export class TasksService {
       priority: t.priority,
       type: t.type ? { id: t.type.id, name: t.type.name, isActive: t.type.isActive } : null,
       dueDate: t.dueDate,
+      client: t.client ? { id: t.client.id, name: t.client.name } : null,
       position: t.position,
       createdBy: t.createdBy ? { id: t.createdBy.id, name: t.createdBy.name } : null,
       assignees: (t.assignees ?? []).map((u) => ({ id: u.id, name: u.name, email: u.email })),
@@ -86,6 +96,12 @@ export class TasksService {
     return type;
   }
 
+  private async loadClient(id: string): Promise<Client> {
+    const client = await this.clients.findOne({ where: { id }, select: { id: true, name: true } });
+    if (!client) throw new BadRequestException('Cliente inválido');
+    return client;
+  }
+
   private async nextPosition(status: string): Promise<number> {
     const row = await this.tasks
       .createQueryBuilder('t')
@@ -97,6 +113,7 @@ export class TasksService {
 
   async create(dto: CreateTaskDto, actor: AuthUser) {
     const type = await this.loadType(dto.typeId);
+    const client = dto.clientId ? await this.loadClient(dto.clientId) : null;
     const assignees = await this.loadAssignees(dto.assigneeIds ?? []);
     const status = (dto.status ?? 'not_started') as TaskStatus;
     const dates = { startedAt: null as Date | null, completedAt: null as Date | null };
@@ -110,6 +127,7 @@ export class TasksService {
         priority: (dto.priority ?? 'medium') as TaskPriority,
         type,
         typeId: type.id,
+        clientId: client?.id ?? null,
         dueDate: parseDate(dto.dueDate),
         position: await this.nextPosition(status),
         createdBy: { id: actor.id } as User,
@@ -142,6 +160,10 @@ export class TasksService {
       const type = await this.loadType(dto.typeId);
       task.type = type;
       task.typeId = type.id;
+    }
+    if (dto.clientId !== undefined && dto.clientId !== task.clientId) {
+      task.client = dto.clientId ? await this.loadClient(dto.clientId) : null;
+      task.clientId = task.client?.id ?? null;
     }
     if (dto.dueDate !== undefined) {
       const newDue = parseDate(dto.dueDate);

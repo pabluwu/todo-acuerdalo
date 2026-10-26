@@ -3,7 +3,7 @@
 import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import { PRIORITY_RANK, STATUSES, type Task, type TaskStatus } from '@/lib/types';
-import { AvatarStack, DueDate, PriorityIcon, TypeBadge, cardLabel } from './TaskCard';
+import { AvatarStack, ClientBadge, DueDate, PriorityIcon, TypeBadge, cardLabel } from './TaskCard';
 
 export type ListSort = 'manual' | 'due' | 'priority' | 'recent';
 
@@ -62,6 +62,7 @@ function Row({ task, onOpen, onCycle, showStatus }: { task: Task; onOpen: (id: s
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5 md:hidden">
           {showStatus && <span className={`inline-flex items-center gap-1 text-[11px] ${s.fg}`}>{s.label}</span>}
           {task.type && <TypeBadge name={task.type.name} />}
+          {task.client && <ClientBadge name={task.client.name} />}
           <DueDate task={task} />
           <span className="ml-auto"><AvatarStack users={task.assignees} /></span>
         </div>
@@ -70,6 +71,7 @@ function Row({ task, onOpen, onCycle, showStatus }: { task: Task; onOpen: (id: s
       <div className="hidden min-w-0 items-center gap-2 md:flex">
         <PriorityIcon priority={task.priority} boxed />
         {task.type ? <TypeBadge name={task.type.name} /> : <span className="text-xs text-zinc-400">Sin tipo</span>}
+        {task.client && <ClientBadge name={task.client.name} />}
       </div>
       <div className="hidden md:block">{task.dueDate ? <DueDate task={task} /> : <span className="text-xs text-zinc-400">Sin fecha</span>}</div>
       <div className="hidden justify-end md:flex"><AvatarStack users={task.assignees} /></div>

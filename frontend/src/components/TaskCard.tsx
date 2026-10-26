@@ -2,7 +2,7 @@
 
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { CalendarDays, Tag } from 'lucide-react';
+import { BriefcaseBusiness, CalendarDays, Tag } from 'lucide-react';
 import { dueState, formatDay } from '@/lib/api';
 import { PRIORITIES, type Task } from '@/lib/types';
 import { Avatar } from './Avatar';
@@ -53,6 +53,15 @@ export function TypeBadge({ name }: { name: string }) {
   );
 }
 
+export function ClientBadge({ name }: { name: string }) {
+  return (
+    <span className="inline-flex max-w-full items-center gap-1 truncate rounded bg-stone-100 px-1.5 text-[11px] leading-5 text-zinc-600">
+      <BriefcaseBusiness size={11} strokeWidth={1.5} aria-hidden className="shrink-0" />
+      <span className="truncate">{name}</span>
+    </span>
+  );
+}
+
 export function AvatarStack({ users, max = 3 }: { users: Task['assignees']; max?: number }) {
   if (users.length === 0) return null;
   return (
@@ -74,6 +83,7 @@ export function TaskCardView({ task, onClick }: { task: Task; onClick?: () => vo
       <div className="mt-3 flex items-center justify-between gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
           {task.type && <TypeBadge name={task.type.name} />}
+          {task.client && <ClientBadge name={task.client.name} />}
           <DueDate task={task} />
         </div>
         <AvatarStack users={task.assignees} />

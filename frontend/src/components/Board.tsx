@@ -9,7 +9,7 @@ import { icon } from '@/lib/icons';
 import { useToast } from '@/lib/toast';
 import { useMobile } from '@/lib/useMediaQuery';
 import type { Task, TaskStatus, TaskType, UserLite } from '@/lib/types';
-import { BoardToolbar, FILTER_KEYS, type BoardView, type Filters } from './BoardToolbar';
+import { BoardToolbar, FILTER_KEYS, isFiltered, type BoardView, type Filters } from './BoardToolbar';
 import { EmptyState } from './EmptyState';
 import { KanbanView } from './KanbanView';
 import { NewTaskDialog } from './NewTaskDialog';
@@ -32,8 +32,10 @@ export function Board() {
 
   const rawDue = params.get('due');
   const rawSort = params.get('sort') as ListSort | null;
+  // sin parámetro son mis tareas; «all» son las de todos (assigneeId vacío)
+  const rawAssignee = params.get('assigneeId');
   const filters: Filters = {
-    assigneeId: params.get('assigneeId') ?? '',
+    assigneeId: rawAssignee === 'all' ? '' : rawAssignee ?? user?.id ?? '',
     priority: params.get('priority') ?? '',
     typeId: params.get('typeId') ?? '',
     due: rawDue === 'overdue' || rawDue === 'soon' ? rawDue : '',
@@ -57,6 +59,7 @@ export function Board() {
   const [showNew, setShowNew] = useState(false);
 
   const loadTasks = useCallback(() => {
+    if (!user) return; // sin saber quién eres no se sabe qué mostrar
     const q = new URLSearchParams();
     if (filters.assigneeId) q.set('assigneeId', filters.assigneeId);
     if (filters.priority) q.set('priority', filters.priority);
@@ -65,7 +68,7 @@ export function Board() {
       .then((t) => { setTasks(t); setLoaded(true); })
       .catch((e) => toast(e.message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serverKey, toast]);
+  }, [serverKey, toast, user]);
 
   useEffect(loadTasks, [loadTasks]);
   useEffect(() => {
@@ -79,7 +82,10 @@ export function Board() {
   }
   function setFilter(key: keyof Filters, value: string) {
     const next = new URLSearchParams(window.location.search);
-    if (value && !(key === 'sort' && value === 'manual')) next.set(key, value); else next.delete(key);
+    if (key === 'assigneeId') {
+      // mías es el valor por defecto (sin parámetro); vacío es «todas»
+      if (value === user?.id) next.delete(key); else next.set(key, value || 'all');
+    } else if (value && !(key === 'sort' && value === 'manual')) next.set(key, value); else next.delete(key);
     setUrl(next);
   }
   function clearFilters() {
@@ -142,8 +148,9 @@ export function Board() {
     }
   }
 
-  const filtered = FILTER_KEYS.some((k) => filters[k] && (k !== 'status' || view === 'list'));
-  const ready = loaded && mobile !== null;
+  const filtered = isFiltered(filters, view, user?.id);
+  const mineView = !!user && filters.assigneeId === user.id;
+  const ready = loaded && mobile !== null && !!user;
 
   return (
     <div className="space-y-6">
@@ -162,6 +169,14 @@ export function Board() {
       />
       {!ready ? (
         view === 'list' ? <ListSkeleton /> : <BoardSkeleton />
+      ) : tasks.length === 0 && !filtered && mineView ? (
+        <EmptyState
+          icon={ClipboardList}
+          title="No tienes tareas asignadas"
+          action={<button className="btn" onClick={() => setFilter('assigneeId', '')}>Ver todas las tareas</button>}
+        >
+          Cuando te asignen una tarea aparecerá aquí.
+        </EmptyState>
       ) : tasks.length === 0 && !filtered ? (
         <EmptyState
           icon={ClipboardList}

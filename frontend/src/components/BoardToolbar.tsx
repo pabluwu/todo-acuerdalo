@@ -20,6 +20,17 @@ export type BoardView = 'board' | 'list';
 /** Claves que cuentan como "filtro activo" (el orden no filtra). */
 export const FILTER_KEYS = ['assigneeId', 'priority', 'typeId', 'due', 'status'] as const;
 
+/**
+ * Hay filtros que acotan la vista. «Mis tareas» es el valor por defecto y no cuenta;
+ * `assigneeId` vacío significa «todas» (tampoco acota).
+ */
+export function isFiltered(filters: Filters, view: BoardView, meId: string | undefined): boolean {
+  return FILTER_KEYS.some((k) => {
+    if (k === 'assigneeId') return !!filters.assigneeId && filters.assigneeId !== meId;
+    return !!filters[k] && (k !== 'status' || view === 'list');
+  });
+}
+
 export function BoardToolbar({
   filters,
   users,
@@ -45,7 +56,8 @@ export function BoardToolbar({
   onClear: () => void;
   onNew: () => void;
 }) {
-  const active = FILTER_KEYS.some((k) => filters[k] && (k !== 'status' || view === 'list'));
+  // «Limpiar» también vuelve de «Todas» a «Mis tareas»
+  const active = isFiltered(filters, view, meId) || (!!meId && !filters.assigneeId);
   const mine = !!meId && filters.assigneeId === meId;
 
   return (
@@ -94,7 +106,8 @@ export function BoardToolbar({
           label="Persona"
           sheet={mobile}
           value={mine ? '' : filters.assigneeId}
-          onChange={(v) => onChange('assigneeId', v)}
+          // al quitar la persona se vuelve a «Mis tareas»
+          onChange={(v) => onChange('assigneeId', v || meId || '')}
           options={users.map((u) => ({ id: u.id, label: u.id === meId ? `${u.name} (tú)` : u.name, lead: <Avatar name={u.name} decorative /> }))}
         />
         <FilterPill

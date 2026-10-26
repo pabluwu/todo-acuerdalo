@@ -4,6 +4,7 @@ import {
 } from 'typeorm';
 import { User } from './user.entity';
 import { TaskType } from './task-type.entity';
+import { Client } from './client.entity';
 
 export type TaskStatus = 'not_started' | 'in_progress' | 'completed';
 export type TaskPriority = 'high' | 'medium' | 'low';
@@ -34,6 +35,14 @@ export class Task {
 
   @Column({ name: 'due_date', type: 'timestamptz', nullable: true })
   dueDate!: Date | null;
+
+  /** Cliente al que pertenece la tarea (opcional). */
+  @Column({ name: 'client_id', type: 'uuid', nullable: true })
+  clientId!: string | null;
+
+  @ManyToOne(() => Client, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'client_id' })
+  client!: Relation<Client> | null;
 
   @Column({ type: 'int', default: 0 })
   position!: number;

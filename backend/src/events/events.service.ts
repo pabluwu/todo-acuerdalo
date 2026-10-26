@@ -5,6 +5,7 @@ import { In, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators';
 import { ContactsService, presentContact } from '../contacts/contacts.service';
+import { ExternalContact } from '../entities/external-contact.entity';
 import { CalendarEvent } from '../entities/event.entity';
 import { User } from '../entities/user.entity';
 import { detectEventChanges, EventSnapshot, newlyAdded, rangeOverlaps, snapshotEvent } from './event-changes';
@@ -53,6 +54,7 @@ export class EventsService {
   constructor(
     @InjectRepository(CalendarEvent) private events: Repository<CalendarEvent>,
     @InjectRepository(User) private users: Repository<User>,
+    @InjectRepository(ExternalContact) private extContacts: Repository<ExternalContact>,
     private contacts: ContactsService,
     private audit: AuditService,
     private emitter: EventEmitter2,
@@ -107,6 +109,21 @@ export class EventsService {
     }
     qb.orderBy('e.start_at', 'ASC').addOrderBy('e.created_at', 'ASC');
     return (await qb.getMany()).map((e) => this.present(e));
+  }
+
+  /** Reuniones de un cliente: eventos que incluyen su contacto vinculado, las más recientes primero. */
+  async listForClient(clientId: string) {
+    const contact = await this.extContacts.findOne({ where: { clientId } });
+    if (!contact) return { contact: null, events: [] };
+    const rows = await this.events
+      .createQueryBuilder('e')
+      .leftJoinAndSelect('e.participants', 'p')
+      .leftJoinAndSelect('e.externalContacts', 'c')
+      .leftJoinAndSelect('e.createdBy', 'cb')
+      .where('e.id IN (SELECT ec.event_id FROM event_external_contacts ec WHERE ec.contact_id = :cid)', { cid: contact.id })
+      .orderBy('e.start_at', 'DESC')
+      .getMany();
+    return { contact: presentContact(contact), events: rows.map((e) => this.present(e)) };
   }
 
   async get(id: string) {

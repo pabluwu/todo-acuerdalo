@@ -1,6 +1,7 @@
 'use client';
 
 import { Check, Trash2, X } from 'lucide-react';
+import Link from 'next/link';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { api, formatDate, fromLocalInput, toLocalInput } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -155,6 +156,12 @@ export function TaskDetail({
               onBlur={() => description !== task.description && save({ description })}
             />
           </div>
+
+          {task.client && (
+            <p className="text-sm text-zinc-600">
+              Cliente: <Link href={`/clients/${task.client.id}`} className="font-medium text-zinc-900 underline-offset-2 hover:underline">{task.client.name}</Link>
+            </p>
+          )}
 
           <div className={`grid grid-cols-2 gap-4 ${page ? 'lg:grid-cols-4' : ''}`}>
             <Field label="Estado">
