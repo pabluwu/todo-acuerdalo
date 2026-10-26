@@ -13,6 +13,9 @@ export class CreateNoteDto {
 
   @IsIn(VISIBILITIES)
   visibility!: 'common' | 'private';
+
+  @IsOptional() @IsUUID()
+  folderId?: string | null;
 }
 
 export class UpdateNoteDto {
@@ -24,6 +27,26 @@ export class UpdateNoteDto {
 
   @IsOptional() @IsIn(VISIBILITIES)
   visibility?: 'common' | 'private';
+
+  /** `null` la deja en la raíz */
+  @IsOptional() @IsUUID()
+  folderId?: string | null;
+}
+
+export class CreateNoteFolderDto {
+  @IsString() @MaxLength(500)
+  name!: string;
+
+  @IsIn(VISIBILITIES)
+  visibility!: 'common' | 'private';
+
+  @IsOptional() @IsUUID()
+  parentId?: string;
+}
+
+export class RenameNoteFolderDto {
+  @IsString() @MaxLength(500)
+  name!: string;
 }
 
 export class ShareItemDto {

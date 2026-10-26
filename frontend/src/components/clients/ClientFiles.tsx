@@ -1,18 +1,16 @@
 'use client';
 
-import {
-  Check, ChevronRight, CircleAlert, Download, FileText, Folder, FolderOpen, FolderPlus, LoaderCircle, Pencil, Trash2, Upload, X,
-} from 'lucide-react';
+import { ChevronRight, Download, FileText, Folder, FolderOpen, FolderPlus, Pencil, Trash2, Upload } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError, formatDate, formatSize } from '@/lib/api';
 import { icon } from '@/lib/icons';
 import { useToast } from '@/lib/toast';
 import type { ClientFile, ClientFolder, FolderListing } from '@/lib/types';
 import { ConfirmDialog } from '../ConfirmDialog';
-import { Dialog } from '../Dialog';
 import { EmptyState } from '../EmptyState';
-import { Field } from '../Field';
+import { NameDialog } from '../NameDialog';
+import { isUploading, plural, UploadList, type Upload as UploadItem } from '../UploadList';
 
 type NameDialog =
   | { kind: 'new-folder' }
@@ -27,24 +25,6 @@ type Action =
   | { kind: 'delete-file'; file: ClientFile }
   | { kind: 'upload'; files: File[] };
 
-interface Upload {
-  key: number;
-  name: string;
-  status: 'waiting' | 'uploading' | 'done' | 'error';
-  error?: string;
-}
-
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
-
-/** Nombre de carpeta o archivo: lo mismo que valida el servidor, para avisar antes de pedir confirmación. */
-function nameProblem(raw: string): string {
-  const name = raw.trim();
-  if (!name) return 'Escribe un nombre.';
-  if (/[/\\]/.test(name)) return 'El nombre no puede contener / ni \\.';
-  if (name === '.' || name === '..') return 'Ese nombre no es válido.';
-  return '';
-}
-
 /** Explorador de archivos del cliente: carpetas anidadas con ruta de navegación. */
 export function ClientFiles({ clientId, clientName }: { clientId: string; clientName: string }) {
   const router = useRouter();
@@ -57,7 +37,7 @@ export function ClientFiles({ clientId, clientName }: { clientId: string; client
   const [nameError, setNameError] = useState('');
   const [pending, setPending] = useState<Action | null>(null);
   const [busy, setBusy] = useState(false);
-  const [uploads, setUploads] = useState<Upload[]>([]);
+  const [uploads, setUploads] = useState<UploadItem[]>([]);
   const picker = useRef<HTMLInputElement>(null);
 
   const load = useCallback(() => {
@@ -130,9 +110,9 @@ export function ClientFiles({ clientId, clientName }: { clientId: string; client
   /** Un archivo por petición: así ninguna supera el límite de tamaño del servidor web. */
   async function upload(files: File[]) {
     const target = folderId;
-    const items: Upload[] = files.map((f, i) => ({ key: Date.now() + i, name: f.name, status: 'waiting' }));
+    const items: UploadItem[] = files.map((f, i) => ({ key: Date.now() + i, name: f.name, status: 'waiting' }));
     setUploads(items);
-    const patch = (key: number, p: Partial<Upload>) => setUploads((list) => list.map((u) => (u.key === key ? { ...u, ...p } : u)));
+    const patch = (key: number, p: Partial<UploadItem>) => setUploads((list) => list.map((u) => (u.key === key ? { ...u, ...p } : u)));
     let ok = 0;
     for (let i = 0; i < files.length; i++) {
       patch(items[i].key, { status: 'uploading' });
@@ -151,7 +131,7 @@ export function ClientFiles({ clientId, clientName }: { clientId: string; client
     await load();
   }
 
-  const uploading = uploads.some((u) => u.status === 'waiting' || u.status === 'uploading');
+  const uploading = isUploading(uploads);
 
   function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -193,28 +173,7 @@ export function ClientFiles({ clientId, clientName }: { clientId: string; client
         </div>
       </div>
 
-      {uploads.length > 0 && (
-        <section aria-label="Subida de archivos" className="mb-4 rounded-xl border border-zinc-200 bg-white p-4">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <h2 className="section-label">{uploading ? 'Subiendo archivos…' : 'Subida terminada'}</h2>
-            {!uploading && <button type="button" onClick={() => setUploads([])} className="btn-ghost btn-icon btn-sm" aria-label="Cerrar el resumen de subida"><X {...icon} /></button>}
-          </div>
-          <ul className="space-y-1.5" role="status">
-            {uploads.map((u) => (
-              <li key={u.key} className="flex items-start gap-2 text-sm">
-                {u.status === 'uploading' && <LoaderCircle {...icon} className="mt-0.5 shrink-0 animate-spin text-accent" />}
-                {u.status === 'waiting' && <span className="mt-0.5 h-4 w-4 shrink-0 rounded-full border border-zinc-300" aria-hidden />}
-                {u.status === 'done' && <Check {...icon} className="mt-0.5 shrink-0 text-emerald-600" />}
-                {u.status === 'error' && <CircleAlert {...icon} className="mt-0.5 shrink-0 text-red-600" />}
-                <span className="min-w-0">
-                  <span className="block truncate text-zinc-800">{u.name}</span>
-                  {u.status === 'error' && <span className="block text-xs text-red-700">{u.error}</span>}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <UploadList uploads={uploads} onDismiss={() => setUploads([])} />
 
       {listing === null ? (
         <div aria-hidden className="space-y-2">
@@ -326,46 +285,4 @@ function confirmCopy(a: Action, here: string): { title: string; confirmLabel: st
         ),
       };
   }
-}
-
-function NameDialog({
-  title, label, initial, submitLabel, error, onSubmit, onClose,
-}: {
-  title: string;
-  label: string;
-  initial: string;
-  submitLabel: string;
-  error: string;
-  onSubmit: (name: string) => void;
-  onClose: () => void;
-}) {
-  const headingId = useId();
-  const [name, setName] = useState(initial);
-  const [problem, setProblem] = useState('');
-  return (
-    <Dialog labelledBy={headingId} onClose={onClose}>
-      <form
-        className="space-y-5"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const p = nameProblem(name);
-          setProblem(p);
-          if (!p) onSubmit(name.trim());
-        }}
-      >
-        <div className="flex items-center justify-between">
-          <h2 id={headingId} className="text-base font-semibold tracking-tight">{title}</h2>
-          <button type="button" onClick={onClose} aria-label="Cerrar" className="btn-ghost btn-icon btn-sm -mr-2"><X {...icon} /></button>
-        </div>
-        <Field label={label} error={problem}>
-          {(p) => <input {...p} autoFocus maxLength={300} className="w-full" value={name} onChange={(e) => setName(e.target.value)} onFocus={(e) => e.target.select()} />}
-        </Field>
-        {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p>}
-        <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="btn">Cancelar</button>
-          <button className="btn-accent">{submitLabel}</button>
-        </div>
-      </form>
-    </Dialog>
-  );
 }

@@ -4,7 +4,7 @@ import {
   DeleteObjectsCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client,
 } from '@aws-sdk/client-s3';
 import { createReadStream, mkdirSync, promises as fs } from 'fs';
-import { join } from 'path';
+import { dirname, join } from 'path';
 import { Readable } from 'stream';
 
 type Driver = 'local' | 'r2';
@@ -38,12 +38,17 @@ export class StorageService {
     this.logger.log(`Archivos en Cloudflare R2 (bucket ${this.bucket})`);
   }
 
+  // los nombres antiguos (un uuid suelto) viven bajo `attachments/`; los nuevos ya traen su ruta completa
   private key(name: string) {
-    return `attachments/${name}`;
+    return name.includes('/') ? name : `attachments/${name}`;
   }
 
   async put(name: string, body: Buffer, contentType: string) {
-    if (!this.s3) return fs.writeFile(join(this.dir, name), body);
+    if (!this.s3) {
+      const path = join(this.dir, name);
+      await fs.mkdir(dirname(path), { recursive: true });
+      return fs.writeFile(path, body);
+    }
     await this.s3.send(new PutObjectCommand({ Bucket: this.bucket, Key: this.key(name), Body: body, ContentType: contentType }));
   }
 
@@ -65,6 +70,19 @@ export class StorageService {
       if (e?.name === 'NoSuchKey' || e?.$metadata?.httpStatusCode === 404) throw new NotFoundException('Archivo no encontrado');
       throw e;
     }
+  }
+
+  async copy(from: string, to: string) {
+    if (!this.s3) {
+      const path = join(this.dir, to);
+      await fs.mkdir(dirname(path), { recursive: true });
+      return fs.copyFile(join(this.dir, from), path);
+    }
+    // se lee y se vuelve a escribir en vez de CopyObject: si R2_ENDPOINT trae el bucket en la ruta,
+    // las claves reales llevan ese prefijo y CopySource no las encontraría
+    const res = await this.s3.send(new GetObjectCommand({ Bucket: this.bucket, Key: this.key(from) }));
+    const body = Buffer.from(await res.Body!.transformToByteArray());
+    await this.s3.send(new PutObjectCommand({ Bucket: this.bucket, Key: this.key(to), Body: body, ContentType: res.ContentType }));
   }
 
   // nunca falla: un archivo huérfano no debe romper el borrado de datos

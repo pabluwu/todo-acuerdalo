@@ -1,7 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { randomUUID } from 'crypto';
-import { extname } from 'path';
 import { DataSource, EntityManager, IsNull, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { decodeName } from '../comments/comments.service';
@@ -12,12 +10,13 @@ import { ClientNote } from '../entities/client-note.entity';
 import { Client } from '../entities/client.entity';
 import { ExternalContact } from '../entities/external-contact.entity';
 import { User } from '../entities/user.entity';
+import { storageKey } from '../storage/storage-key';
 import { StorageService } from '../storage/storage.service';
 import { planContactSync } from './contact-sync';
 import {
   ClientQueryDto, CreateClientDto, CreateClientNoteDto, CreateFolderDto, RenameDto, UpdateClientDto, UpdateClientNoteDto,
 } from './clients.dto';
-import { validateFolderName } from './folder-name';
+import { validateFolderName } from '../common/folder-name';
 import { isValidRut, normalizeRut } from './rut';
 
 const lite = (u: User | null) => (u ? { id: u.id, name: u.name } : null);
@@ -431,7 +430,7 @@ export class ClientsService {
     // primero al almacenamiento y luego las filas; si algo falla se borran los objetos subidos
     const stored = uploads.map((f) => ({
       file: f,
-      name: randomUUID() + extname(f.originalname).slice(0, 12).replace(/[^a-zA-Z0-9.]/g, ''),
+      name: storageKey(`clientes/${clientId}`, decodeName(f.originalname)),
     }));
     let rows: ClientFile[];
     try {

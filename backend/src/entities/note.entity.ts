@@ -1,6 +1,7 @@
 import {
   Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, Relation, UpdateDateColumn,
 } from 'typeorm';
+import { NoteFile } from './note-file.entity';
 import { NoteShare } from './note-share.entity';
 import { User } from './user.entity';
 
@@ -21,6 +22,10 @@ export class Note {
   @Column({ type: 'varchar', length: 10, default: 'common' })
   visibility!: NoteVisibility;
 
+  /** Carpeta donde la ubica su dueño (privadas) o el equipo (comunes); nula en la raíz. */
+  @Column({ name: 'folder_id', type: 'uuid', nullable: true })
+  folderId!: string | null;
+
   @Column({ name: 'owner_id', type: 'uuid', nullable: true })
   ownerId!: string | null;
 
@@ -37,6 +42,12 @@ export class Note {
 
   @OneToMany(() => NoteShare, (s) => s.note)
   shares!: Relation<NoteShare>[];
+
+  @OneToMany(() => NoteFile, (f) => f.note)
+  files!: Relation<NoteFile>[];
+
+  /** Solo en listados (`loadRelationCountAndMap`) */
+  fileCount?: number;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;

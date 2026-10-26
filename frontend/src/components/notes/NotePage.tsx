@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Check, FileQuestion, Link2, Lock, Pencil, Share2, Trash2, Users, X } from 'lucide-react';
+import { ArrowLeft, Check, FileQuestion, FolderInput, Link2, Lock, Pencil, Share2, Trash2, Users, X } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -12,7 +12,10 @@ import type { Note, NoteAccessRequest, NoteNoAccess, NotePermission, UserLite } 
 import { Dialog } from '../Dialog';
 import { EmptyState } from '../EmptyState';
 import { PanelSkeleton } from '../Skeletons';
+import { notesHref } from './href';
 import { Markdown } from './Markdown';
+import { MoveNoteDialog } from './MoveNoteDialog';
+import { NoteFiles } from './NoteFiles';
 import { ShareDialog } from './ShareDialog';
 
 // El editor es pesado: solo se descarga al editar
@@ -38,6 +41,7 @@ export function NotePage({ noteId }: { noteId: string }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [sharing, setSharing] = useState(false);
+  const [moving, setMoving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -110,7 +114,7 @@ export function NotePage({ noteId }: { noteId: string }) {
     try {
       await api(`/notes/${noteId}`, { method: 'DELETE' });
       toast('Nota eliminada', 'success');
-      router.push(`/notes?scope=${note?.visibility ?? 'common'}`);
+      router.push(notesHref(note?.visibility ?? 'common', note?.folderId));
     } catch (err) {
       toast((err as Error).message);
       setBusy(false);
@@ -191,11 +195,14 @@ export function NotePage({ noteId }: { noteId: string }) {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <Link href={`/notes?scope=${note.visibility}`} className="btn-ghost -ml-3"><ArrowLeft {...icon} /> Volver a las notas</Link>
+        <Link href={notesHref(note.visibility, note.folderId)} className="btn-ghost -ml-3"><ArrowLeft {...icon} /> Volver a las notas</Link>
         <div className="flex flex-wrap items-center gap-1">
           <button onClick={copyLink} className="btn-ghost"><Link2 {...icon} /> Copiar enlace</button>
           {isOwner && note.visibility === 'private' && !editing && (
             <button onClick={() => setSharing(true)} className="btn-ghost"><Share2 {...icon} /> Compartir</button>
+          )}
+          {note.canMove && !editing && (
+            <button onClick={() => setMoving(true)} className="btn-ghost"><FolderInput {...icon} /> Mover</button>
           )}
           {canEdit && !editing && <button onClick={startEdit} className="btn"><Pencil {...icon} /> Editar</button>}
           {note.canDelete && !editing && (
@@ -277,6 +284,15 @@ export function NotePage({ noteId }: { noteId: string }) {
         )}
       </div>
 
+      <NoteFiles note={note} onChange={(files) => setNote((n) => (n ? { ...n, files } : n))} />
+
+      {moving && (
+        <MoveNoteDialog
+          note={note}
+          onClose={() => setMoving(false)}
+          onMoved={(n) => { setNote(n); setMoving(false); toast('Nota movida', 'success'); }}
+        />
+      )}
       {sharing && (
         <ShareDialog
           note={note}
@@ -298,7 +314,7 @@ function ConfirmDeleteDialog({ title, busy, onCancel, onConfirm }: { title: stri
     <Dialog labelledBy={headingId} onClose={onCancel}>
       <div className="space-y-4">
         <h2 id={headingId} className="text-base font-semibold tracking-tight">¿Eliminar esta nota?</h2>
-        <p className="text-sm text-zinc-600">«{title}» se eliminará para siempre, junto con los accesos compartidos.</p>
+        <p className="text-sm text-zinc-600">«{title}» se eliminará para siempre, junto con sus archivos adjuntos y los accesos compartidos.</p>
         <div className="flex justify-end gap-2">
           <button type="button" onClick={onCancel} className="btn" autoFocus>Cancelar</button>
           <button type="button" onClick={onConfirm} className="btn-danger" disabled={busy}>{busy ? 'Eliminando…' : 'Eliminar'}</button>

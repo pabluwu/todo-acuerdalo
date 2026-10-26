@@ -31,3 +31,17 @@ export function canDeleteNote(
 }
 
 export const canEditNote = (access: NoteAccess) => access === 'owner' || access === 'edit';
+
+type FolderRef = { visibility: NoteVisibility; ownerId: string | null };
+
+/** Carpetas comunes: las administra cualquiera del equipo. Privadas: solo su dueño (ni siquiera un admin). */
+export const canManageFolder = (folder: FolderRef, userId: string) =>
+  folder.visibility === 'common' || folder.ownerId === userId;
+
+/** Mover una nota de carpeta: en comunes, quien la pueda editar; en privadas, solo el dueño (las carpetas son suyas). */
+export const canMoveNote = (note: { visibility: NoteVisibility }, access: NoteAccess) =>
+  note.visibility === 'common' ? canEditNote(access) : access === 'owner';
+
+/** Una nota solo cabe en carpetas de su misma pestaña; si es privada, en las de su dueño. */
+export const folderFitsNote = (folder: FolderRef, note: { visibility: NoteVisibility; ownerId: string | null }) =>
+  folder.visibility === note.visibility && (note.visibility === 'common' || (!!note.ownerId && folder.ownerId === note.ownerId));

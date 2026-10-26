@@ -116,6 +116,9 @@ export interface NoteSummary {
   title: string;
   excerpt: string;
   visibility: NoteVisibility;
+  /** Nulo en la raíz, o si es una privada ajena (la carpeta es del dueño) */
+  folderId: string | null;
+  fileCount: number;
   owner: { id: string; name: string } | null;
   updatedBy: { id: string; name: string } | null;
   myAccess: NoteAccess;
@@ -131,11 +134,50 @@ export interface NoteShare {
   permission: NotePermission;
 }
 
-export interface Note extends Omit<NoteSummary, 'excerpt' | 'shared'> {
+export interface Note extends Omit<NoteSummary, 'excerpt' | 'shared' | 'fileCount'> {
   body: string;
   canDelete: boolean;
+  canMove: boolean;
+  files: NoteFile[];
   /** Solo el dueño de una nota privada recibe la lista */
   shares: NoteShare[];
+}
+
+export interface NoteFile {
+  id: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  uploadedBy: { id: string; name: string } | null;
+  createdAt: string;
+}
+
+export interface NoteFolder {
+  id: string;
+  name: string;
+  parentId: string | null;
+  visibility: NoteVisibility;
+  /** Subcarpetas y notas que contiene, a cualquier profundidad */
+  itemCount: number;
+  createdAt: string;
+}
+
+/** Carpeta para elegir destino al mover una nota; `path` es la ruta completa («A / B / C»). */
+export interface NoteFolderOption {
+  id: string;
+  name: string;
+  parentId: string | null;
+  path: string;
+}
+
+export interface NoteListing {
+  folder: NoteFolder | null;
+  /** De la carpeta de primer nivel hasta la actual (vacío en la raíz o al buscar) */
+  breadcrumb: { id: string; name: string }[];
+  folders: NoteFolder[];
+  notes: NoteSummary[];
+  /** Privadas de otros compartidas conmigo: solo en la raíz de Privadas */
+  sharedWithMe: NoteSummary[];
 }
 
 export interface NoteAccessRequest {

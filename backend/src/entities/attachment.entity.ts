@@ -22,6 +22,6 @@ export class Attachment {
   @Column({ type: 'int' })
   size!: number;
 
-  @Column({ name: 'stored_name', type: 'varchar', length: 200 })
+  @Column({ name: 'stored_name', type: 'varchar', length: 500 })
   storedName!: string;
 }

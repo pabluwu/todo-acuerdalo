@@ -1,8 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { randomUUID } from 'crypto';
-import { extname } from 'path';
 import { In, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators';
@@ -10,6 +8,7 @@ import { Attachment } from '../entities/attachment.entity';
 import { Comment } from '../entities/comment.entity';
 import { Task } from '../entities/task.entity';
 import { User } from '../entities/user.entity';
+import { storageKey } from '../storage/storage-key';
 import { StorageService } from '../storage/storage.service';
 import { Change } from '../tasks/task-changes';
 import { normalizeMentionIds } from './mentions';
@@ -64,7 +63,7 @@ export class CommentsService {
     const ids = normalizeMentionIds(mentionIds, actor.id);
     const mentioned = ids.length ? await this.users.find({ where: { id: In(ids), isActive: true } }) : [];
     // los archivos se suben antes de guardar el comentario; si algo falla se borran
-    const stored = files.map((f) => ({ file: f, name: randomUUID() + extname(f.originalname).slice(0, 12).replace(/[^a-zA-Z0-9.]/g, '') }));
+    const stored = files.map((f) => ({ file: f, name: storageKey(`tareas/${taskId}`, decodeName(f.originalname)) }));
     let comment: Comment;
     try {
       await Promise.all(stored.map((s) => this.storage.put(s.name, s.file.buffer, s.file.mimetype)));
