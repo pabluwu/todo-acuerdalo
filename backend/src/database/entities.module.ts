@@ -14,13 +14,19 @@ import { NoteAccessRequest } from '../entities/note-access-request.entity';
 import { NoteShare } from '../entities/note-share.entity';
 import { Note } from '../entities/note.entity';
 import { PasswordResetToken } from '../entities/password-reset-token.entity';
+import { Publication } from '../entities/publication.entity';
+import { PublicationReviewer } from '../entities/publication-reviewer.entity';
+import { PublicationVersion } from '../entities/publication-version.entity';
+import { PublicationVersionFile } from '../entities/publication-version-file.entity';
+import { PublicationApproval } from '../entities/publication-approval.entity';
+import { PublicationComment } from '../entities/publication-comment.entity';
 import { PushSubscription } from '../entities/push-subscription.entity';
 import { Log } from '../entities/log.entity';
 import { TaskType } from '../entities/task-type.entity';
 import { Task } from '../entities/task.entity';
 import { User } from '../entities/user.entity';
 
-const features = TypeOrmModule.forFeature([User, TaskType, Task, Comment, Attachment, Log, CalendarEvent, ExternalContact, PasswordResetToken, Note, NoteShare, NoteAccessRequest, NoteFolder, NoteFile, Client, ClientNote, ClientFolder, ClientFile, PushSubscription]);
+const features = TypeOrmModule.forFeature([User, TaskType, Task, Comment, Attachment, Log, CalendarEvent, ExternalContact, PasswordResetToken, Note, NoteShare, NoteAccessRequest, NoteFolder, NoteFile, Client, ClientNote, ClientFolder, ClientFile, PushSubscription, Publication, PublicationReviewer, PublicationVersion, PublicationVersionFile, PublicationApproval, PublicationComment]);
 
 @Global()
 @Module({ imports: [features], exports: [features] })

@@ -367,3 +367,95 @@ export function plainExcerpt(md: string, max = 160): string {
     .trim();
   return text.length > max ? text.slice(0, max).trimEnd() + '…' : text;
 }
+
+// ---------- Publicaciones (calendario de contenido) ----------
+
+export type PublicationStatus = 'idea' | 'edicion' | 'por_publicar' | 'publicada' | 'cancelada';
+export type PublicationFormat = 'video' | 'post';
+export type PublicationAction = 'publish' | 'cancel' | 'restore' | 'reopen';
+
+export interface PublicationUser {
+  id: string;
+  name: string;
+}
+
+export interface PublicationSummary {
+  id: string;
+  title: string;
+  format: PublicationFormat;
+  /** video: 'tiktok', 'reels'; post: 'instagram', 'facebook' */
+  platforms: string[];
+  status: PublicationStatus;
+  scheduledAt: string;
+  client: { id: string; name: string } | null;
+  createdBy: PublicationUser | null;
+  latestVersion: number | null;
+  approvals: number;
+  reviewersCount: number;
+  myPendingApproval: boolean;
+  thumbnailFileId: string | null;
+  thumbnailMime: string | null;
+  commentsCount: number;
+}
+
+export interface PublicationFile {
+  id: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  position: number;
+}
+
+export interface PublicationApproval {
+  userId: string;
+  decision: 'aprobada' | 'cambios';
+  createdAt: string;
+}
+
+export interface PublicationVersion {
+  id: string;
+  number: number;
+  note: string;
+  uploadedBy: PublicationUser | null;
+  createdAt: string;
+  files: PublicationFile[];
+  approvals: PublicationApproval[];
+}
+
+export interface PublicationComment {
+  id: string;
+  versionId: string | null;
+  versionNumber: number | null;
+  author: PublicationUser | null;
+  body: string;
+  timecodeSec: number | null;
+  /** Posición de la imagen en el carrusel, desde 0 */
+  slideIndex: number | null;
+  mentionIds: string[];
+  createdAt: string;
+}
+
+export interface PublicationDetail extends PublicationSummary {
+  caption: string;
+  brief: string;
+  cancelledFrom: PublicationStatus | null;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  reviewers: (PublicationUser & { isActive: boolean })[];
+  /** Número descendente: la primera es la última versión */
+  versions: PublicationVersion[];
+  /** Orden ascendente */
+  comments: PublicationComment[];
+  canDelete: boolean;
+}
+
+export interface PublicationActivity {
+  id: string;
+  publicationId: string;
+  publicationTitle: string;
+  actor: PublicationUser | null;
+  action: 'created' | 'version_uploaded' | 'approved' | 'changes_requested' | 'commented' | 'status_changed';
+  detail: string | null;
+  createdAt: string;
+}

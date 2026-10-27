@@ -58,7 +58,7 @@ const norm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').t
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** Pinta como chip los @Nombre de usuarios conocidos; el resto del texto queda tal cual. */
-function renderBody(body: string, users: UserLite[]) {
+export function renderBody(body: string, users: UserLite[]) {
   const names = [...new Set(users.map((u) => u.name.trim()).filter(Boolean))].sort((a, b) => b.length - a.length);
   if (names.length === 0) return body;
   const re = new RegExp(`(@(?:${names.map(escapeRe).join('|')}))(?![\\p{L}\\p{N}_])`, 'gu');

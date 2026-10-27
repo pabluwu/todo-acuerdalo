@@ -436,3 +436,35 @@
 .note-editor [role='toolbar'] { background: #fafafa; border-bottom: 1px solid #e4e4e7; border-radius: 0.375rem 0.375rem 0 0; flex-wrap: wrap; }
 .note-editor .mdxeditor-root-contenteditable > div { min-height: 24rem; padding: 0.75rem 1rem; outline: none; }
 .note-editor-loading { min-height: 24rem; border: 1px solid #e4e4e7; border-radius: 0.375rem; padding: 1rem; font-size: 0.875rem; color: #71717a; }
+
+/* ---------- Publicaciones ----------
+   Cada estado define los mismos tokens --ev-* que los colores de evento; `.pub-chip` los pinta.
+   Estado = icono + texto + color, nunca solo color. */
+.pub-c-idea { --ev-bg: #f5f5f4; --ev-bd: #e7e5e4; --ev-fg: #44403c; --ev-dot: #78716c; }
+.pub-c-edicion { --ev-bg: #eef2ff; --ev-bd: #c7d2fe; --ev-fg: #312e81; --ev-dot: #4f46e5; }
+.pub-c-por_publicar { --ev-bg: #fffbeb; --ev-bd: #fde68a; --ev-fg: #92400e; --ev-dot: #f59e0b; }
+.pub-c-publicada { --ev-bg: #ecfdf5; --ev-bd: #a7f3d0; --ev-fg: #065f46; --ev-dot: #10b981; }
+.pub-c-cancelada { --ev-bg: #fff; --ev-bd: #d4d4d8; --ev-fg: #71717a; --ev-dot: #a1a1aa; }
+.pub-chip {
+  background: var(--ev-bg);
+  border: 1px solid var(--ev-bd);
+  color: var(--ev-fg);
+}
+.pub-c-cancelada.pub-chip, .cal-shell .fc .fc-event.pub-c-cancelada { border-style: dashed; }
+.pub-c-cancelada .pub-title { text-decoration: line-through; }
+
+.cal-shell.pub-shell .fc .fc-daygrid-day-frame { min-height: 7.25rem; }
+.cal-shell.pub-shell .fc .fc-daygrid-day-top { align-items: center; }
+.cal-shell.pub-shell .fc .fc-event { cursor: pointer; }
+.cal-shell.pub-shell .fc .fc-event.fc-event-draggable { cursor: grab; }
+.pub-add {
+  margin-left: auto;
+  display: inline-flex; height: 1.5rem; width: 1.5rem; align-items: center; justify-content: center;
+  border-radius: 9999px; color: #52525b; opacity: 0; transition: opacity 120ms, background-color 120ms;
+}
+.pub-add:hover { background: #eef2ff; color: #4f46e5; }
+.fc-daygrid-day:hover .pub-add, .pub-add:focus-visible { opacity: 1; }
+@media (pointer: coarse) { .pub-add { opacity: 0.7; } }
+.pub-ev { display: flex; min-width: 0; flex-direction: column; gap: 0.0625rem; overflow: hidden; padding: 0.1875rem 0.375rem; line-height: 1.25; }
+.pub-ev-line { display: flex; min-width: 0; align-items: center; gap: 0.25rem; }
+.pub-ev-sub { font-size: 0.6875rem; opacity: 0.8; font-variant-numeric: tabular-nums; }

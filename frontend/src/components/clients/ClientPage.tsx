@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, CalendarDays, FileQuestion, FolderOpen, IdCard, ListChecks, NotebookPen } from 'lucide-react';
+import { ArrowLeft, CalendarDays, FileQuestion, FolderOpen, IdCard, ListChecks, Megaphone, NotebookPen } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -15,14 +15,16 @@ import { ClientMeetings } from './ClientMeetings';
 import { ClientNotes } from './ClientNotes';
 import { ClientProfile } from './ClientProfile';
 import { ClientTasks } from './ClientTasks';
+import { ClientPublications } from '../publications/ClientPublications';
 
-type Tab = 'ficha' | 'tareas' | 'reuniones' | 'notas' | 'archivos';
+type Tab = 'ficha' | 'tareas' | 'reuniones' | 'notas' | 'archivos' | 'publicaciones';
 const TABS: { id: Tab; label: string; icon: typeof IdCard }[] = [
   { id: 'ficha', label: 'Ficha', icon: IdCard },
   { id: 'tareas', label: 'Tareas', icon: ListChecks },
   { id: 'reuniones', label: 'Reuniones', icon: CalendarDays },
   { id: 'notas', label: 'Notas', icon: NotebookPen },
   { id: 'archivos', label: 'Archivos', icon: FolderOpen },
+  { id: 'publicaciones', label: 'Publicaciones', icon: Megaphone },
 ];
 
 /** Cliente a pantalla completa en `/clients/[id]`, con pestañas sincronizadas con `?tab=`. */
@@ -31,7 +33,7 @@ export function ClientPage({ clientId }: { clientId: string }) {
   const toast = useToast();
   const params = useSearchParams();
   const raw = params.get('tab');
-  const tab: Tab = raw === 'tareas' || raw === 'reuniones' || raw === 'notas' || raw === 'archivos' ? raw : 'ficha';
+  const tab: Tab = raw === 'tareas' || raw === 'reuniones' || raw === 'notas' || raw === 'archivos' || raw === 'publicaciones' ? raw : 'ficha';
   const [client, setClient] = useState<Client | null>(null);
   const [notFound, setNotFound] = useState(false);
 
@@ -73,7 +75,7 @@ export function ClientPage({ clientId }: { clientId: string }) {
           </p>
         )}
       </header>
-      <div className="seg mb-5 w-full sm:w-auto" role="group" aria-label="Secciones del cliente">
+      <div className="seg no-scrollbar mb-5 max-w-full overflow-x-auto sm:w-auto" role="group" aria-label="Secciones del cliente">
         {TABS.map((t) => (
           <button key={t.id} type="button" aria-pressed={tab === t.id} onClick={() => setTab(t.id)}><t.icon {...icon} /> {t.label}</button>
         ))}
@@ -82,6 +84,7 @@ export function ClientPage({ clientId }: { clientId: string }) {
       {tab === 'tareas' && <ClientTasks clientId={clientId} clientName={client.name} />}
       {tab === 'reuniones' && <ClientMeetings clientId={clientId} clientName={client.name} />}
       {tab === 'notas' && <ClientNotes clientId={clientId} />}
+      {tab === 'publicaciones' && <ClientPublications clientId={clientId} />}
       {tab === 'archivos' && <ClientFiles clientId={clientId} clientName={client.name} />}
     </div>
   );

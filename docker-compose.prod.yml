@@ -27,6 +27,7 @@ services:
     environment:
       PORT: 3001
       UPLOAD_DIR: /app/uploads
+      PUBLICATION_UPLOAD_MAX_MB: ${PUBLICATION_UPLOAD_MAX_MB:-500}
     ports:
       - "127.0.0.1:4100:3001"
     depends_on:

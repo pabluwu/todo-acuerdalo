@@ -287,3 +287,52 @@ export function weeklySummaryEmail(
     ),
   };
 }
+
+export function publicationUrl(appUrl: string, id: string) {
+  return `${appUrl.replace(/\/$/, '')}/publicaciones/${id}`;
+}
+
+type PublicationEmailKind = 'version_uploaded' | 'changes_requested' | 'approved' | 'mentioned' | 'status_changed';
+
+/** Correo de una publicación: `detail` es la versión, el estado nuevo o el texto del comentario según el tipo. */
+export function publicationEmail(
+  appUrl: string,
+  kind: PublicationEmailKind,
+  pub: { id: string; title: string },
+  actorName: string,
+  detail?: string,
+) {
+  const title = `<strong>${esc(pub.title)}</strong>`;
+  const copy: Record<PublicationEmailKind, { subject: string; heading: string; text: string }> = {
+    version_uploaded: {
+      subject: `Nueva versión para revisar: ${pub.title}`,
+      heading: 'Hay una versión para revisar',
+      text: `${esc(actorName)} subió la versión ${esc(detail ?? '')} de ${title}. Revísala y aprueba o pide cambios.`,
+    },
+    changes_requested: {
+      subject: `Piden cambios en: ${pub.title}`,
+      heading: 'Piden cambios',
+      text: `${esc(actorName)} pidió cambios en la versión ${esc(detail ?? '')} de ${title}.`,
+    },
+    approved: {
+      subject: `Aprobada y lista para publicar: ${pub.title}`,
+      heading: 'La publicación está lista',
+      text: `Todos los revisores aprobaron la versión ${esc(detail ?? '')} de ${title}. Ahora está en «Por publicar».`,
+    },
+    mentioned: {
+      subject: `${actorName} te mencionó en: ${pub.title}`,
+      heading: 'Te mencionaron en una publicación',
+      text: `${esc(actorName)} te mencionó en ${title}.${detail ? `</p><blockquote style="margin:12px 0;padding-left:12px;border-left:3px solid #e4e4e7;color:#52525b">${esc(detail.slice(0, 500))}</blockquote><p style="font-size:14px">` : ''}`,
+    },
+    status_changed: {
+      subject: `${pub.title}: ${detail ?? 'cambio de estado'}`,
+      heading: 'Cambió el estado de una publicación',
+      text: `${esc(actorName)} dejó ${title} en «${esc(detail ?? '')}».`,
+    },
+  };
+  const c = copy[kind];
+  return {
+    subject: c.subject,
+    html: layout(c.heading, `<p style="font-size:14px;line-height:1.6">${c.text}</p>`, { url: publicationUrl(appUrl, pub.id), text: 'Abrir publicación' }),
+  };
+}

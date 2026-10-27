@@ -52,19 +52,40 @@ export class StorageService {
     await this.s3.send(new PutObjectCommand({ Bucket: this.bucket, Key: this.key(name), Body: body, ContentType: contentType }));
   }
 
+  /** Sube un archivo del disco sin cargarlo en memoria (videos grandes). */
+  async putFile(name: string, localPath: string, contentType: string) {
+    if (!this.s3) {
+      const path = join(this.dir, name);
+      await fs.mkdir(dirname(path), { recursive: true });
+      return fs.copyFile(localPath, path);
+    }
+    const { size } = await fs.stat(localPath);
+    const body = createReadStream(localPath);
+    try {
+      await this.s3.send(new PutObjectCommand({ Bucket: this.bucket, Key: this.key(name), Body: body, ContentLength: size, ContentType: contentType }));
+    } finally {
+      body.destroy();
+    }
+  }
+
   async exists(name: string): Promise<boolean> {
     if (!this.s3) return fs.access(join(this.dir, name)).then(() => true, () => false);
     return this.s3.send(new HeadObjectCommand({ Bucket: this.bucket, Key: this.key(name) })).then(() => true, () => false);
   }
 
-  async getStream(name: string): Promise<Readable> {
+  /** `range` (inclusivo) devuelve solo ese tramo de bytes. */
+  async getStream(name: string, range?: { start: number; end: number }): Promise<Readable> {
     if (!this.s3) {
       const path = join(this.dir, name);
       if (!(await fs.access(path).then(() => true, () => false))) throw new NotFoundException('Archivo no encontrado');
-      return createReadStream(path);
+      return createReadStream(path, range);
     }
     try {
-      const res = await this.s3.send(new GetObjectCommand({ Bucket: this.bucket, Key: this.key(name) }));
+      const res = await this.s3.send(new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: this.key(name),
+        ...(range ? { Range: `bytes=${range.start}-${range.end}` } : {}),
+      }));
       return res.Body as Readable;
     } catch (e: any) {
       if (e?.name === 'NoSuchKey' || e?.$metadata?.httpStatusCode === 404) throw new NotFoundException('Archivo no encontrado');

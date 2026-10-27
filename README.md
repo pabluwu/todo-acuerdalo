@@ -69,6 +69,7 @@ Se definen en `.env` (plantilla en `.env.example`).
 | `COOKIE_SECURE` | `true` si sirves la app por HTTPS | `false` |
 | `APP_URL` | URL pública del frontend, usada en los enlaces de los correos | `http://localhost:3000` |
 | `UPLOAD_MAX_MB` | Tamaño máximo por archivo adjunto (MB) | `10` |
+| `PUBLICATION_UPLOAD_MAX_MB` | Tamaño máximo por archivo de una versión de publicación (MB) | `500` |
 | `SMTP_HOST`, `SMTP_PORT` | Servidor SMTP | `mailpit`, `1025` |
 | `SMTP_SECURE` | `true` para TLS directo (puerto 465) | `false` |
 | `SMTP_USER`, `SMTP_PASS` | Credenciales SMTP (vacías para mailpit) | vacío |

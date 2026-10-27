@@ -2,13 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { buildIcs, IcsMethod, parseAddress } from '../mail/ics';
 import { CalendarInvite, MailService } from '../mail/mail.service';
 import {
   activatedEmail, assignedEmail, changedEmail, dueEmail,
-  eventCancelledEmail, eventChangedEmail, eventInvitedEmail, eventReminderEmail, mentionEmail, noteAccessRequestEmail, noteSharedEmail, passwordResetEmail, weeklySummaryEmail, WeeklySummarySection,
+  eventCancelledEmail, eventChangedEmail, eventInvitedEmail, eventReminderEmail, mentionEmail, noteAccessRequestEmail, noteSharedEmail, passwordResetEmail, publicationEmail, weeklySummaryEmail, WeeklySummarySection,
 } from '../mail/templates';
 import {
   computeEventRecipients, detectEventChanges, EventSnapshot, formatEventWhen, snapshotFromPayload,
@@ -72,6 +72,14 @@ export interface NoteAccessRequestedEvent {
   note: { id: string; title: string };
   actor: { id: string; name: string };
   owner: U;
+}
+
+/** Aviso de una publicación: quién lo origina, a quiénes llega y un detalle (versión, estado o comentario). */
+export interface PublicationNotifyEvent {
+  publication: { id: string; title: string };
+  actor: { id: string; name: string };
+  recipientIds: string[];
+  detail?: string;
 }
 
 /** Resumen corto de los cambios para el cuerpo del push: etiquetas de los campos modificados. */
@@ -324,6 +332,59 @@ export class NotificationsService {
     } catch (err) {
       this.logger.error(`note.shared: ${(err as Error).message}`);
     }
+  }
+
+  private async notifyPublication(
+    kind: 'version_uploaded' | 'changes_requested' | 'approved' | 'mentioned' | 'status_changed',
+    e: PublicationNotifyEvent,
+    push: { title: string; body: string },
+  ) {
+    try {
+      const ids = [...new Set(e.recipientIds)].filter((id) => id !== e.actor.id);
+      if (ids.length === 0) return;
+      const recipients = await this.users.find({ where: { id: In(ids), isActive: true } });
+      if (recipients.length === 0) return;
+      const { subject, html } = publicationEmail(this.appUrl, kind, e.publication, e.actor.name, e.detail);
+      void this.push.sendToUsers(recipients.map((u) => u.id), { ...push, url: `/publicaciones/${e.publication.id}` });
+      for (const u of recipients) await this.sendTo(u, subject, html);
+    } catch (err) {
+      this.logger.error(`publication.${kind}: ${(err as Error).message}`);
+    }
+  }
+
+  @OnEvent('publication.version_uploaded', { async: true })
+  onPublicationVersionUploaded(e: PublicationNotifyEvent) {
+    return this.notifyPublication('version_uploaded', e, {
+      title: 'Nueva versión para revisar', body: `${e.actor.name}: ${e.publication.title} ${e.detail ?? ''}`.trim(),
+    });
+  }
+
+  @OnEvent('publication.changes_requested', { async: true })
+  onPublicationChangesRequested(e: PublicationNotifyEvent) {
+    return this.notifyPublication('changes_requested', e, {
+      title: 'Piden cambios', body: `${e.actor.name} en ${e.publication.title}`,
+    });
+  }
+
+  @OnEvent('publication.approved', { async: true })
+  onPublicationApproved(e: PublicationNotifyEvent) {
+    return this.notifyPublication('approved', e, {
+      title: 'Lista para publicar', body: `${e.publication.title} fue aprobada por todos`,
+    });
+  }
+
+  @OnEvent('publication.mentioned', { async: true })
+  onPublicationMentioned(e: PublicationNotifyEvent) {
+    return this.notifyPublication('mentioned', e, {
+      title: `${e.actor.name} te mencionó`, body: e.publication.title,
+    });
+  }
+
+  @OnEvent('publication.status_changed', { async: true })
+  onPublicationStatusChanged(e: PublicationNotifyEvent) {
+    return this.notifyPublication('status_changed', e, {
+      title: `${e.publication.title}: ${e.detail ?? 'cambio de estado'}`, body: `${e.actor.name} cambió el estado`,
+    });
   }
 
   /** Sin CC: el enlace es sensible y solo debe llegar al correo de la cuenta. */

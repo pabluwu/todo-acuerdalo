@@ -19,6 +19,7 @@ import { HealthController } from './health/health.controller';
 import { MailModule } from './mail/mail.module';
 import { NotesModule } from './notes/notes.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { PublicationsModule } from './publications/publications.module';
 import { PushModule } from './push/push.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { StorageModule } from './storage/storage.module';
@@ -55,6 +56,7 @@ import { UsersModule } from './users/users.module';
     EventsModule,
     NotesModule,
     ClientsModule,
+    PublicationsModule,
     SchedulerModule,
   ],
   controllers: [HealthController],

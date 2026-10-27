@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  BriefcaseBusiness, CalendarDays, ChevronDown, Contact, LayoutDashboard, LogOut, NotebookPen, ScrollText, Shield, Tags, UserRound, Users, type LucideIcon,
+  BriefcaseBusiness, CalendarDays, ChevronDown, Contact, LayoutDashboard, LogOut, Megaphone, NotebookPen, ScrollText, Shield, Tags, UserRound, Users, type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -13,13 +13,14 @@ import { useDismiss } from '@/lib/useDismiss';
 import { Avatar } from './Avatar';
 import { Logo } from './Logo';
 
-interface NavItem { href: string; label: string; icon: LucideIcon }
+interface NavItem { href: string; label: string; icon: LucideIcon; /** Etiqueta corta para la barra inferior móvil */ shortLabel?: string }
 
 const MAIN: NavItem[] = [
   { href: '/', label: 'Tablero', icon: LayoutDashboard },
   { href: '/calendar', label: 'Calendario', icon: CalendarDays },
   { href: '/notes', label: 'Notas', icon: NotebookPen },
   { href: '/clients', label: 'Clientes', icon: BriefcaseBusiness },
+  { href: '/publicaciones', label: 'Publicaciones', icon: Megaphone, shortLabel: 'Contenido' },
 ];
 const ADMIN: NavItem[] = [
   { href: '/admin/users', label: 'Usuarios', icon: Users },
@@ -170,7 +171,7 @@ function DesktopNav({ path, pending }: { path: string; pending: number }) {
 function MobileTabBar({ path, pending }: { path: string; pending: number }) {
   return (
     <nav aria-label="Principal" className="tabbar">
-      <div className="mx-auto grid max-w-md grid-cols-4">
+      <div className="mx-auto grid max-w-md grid-cols-5">
         {MAIN.map((i) => {
           const active = isActive(path, i.href);
           return (
@@ -181,7 +182,7 @@ function MobileTabBar({ path, pending }: { path: string; pending: number }) {
                   <span className="pill-count absolute right-1.5 top-0 ring-2 ring-white" aria-label={`${pending} solicitudes de acceso pendientes`}>{pending}</span>
                 )}
               </span>
-              {i.label}
+              {i.shortLabel ?? i.label}
             </Link>
           );
         })}
