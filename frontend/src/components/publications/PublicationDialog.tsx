@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import { localDateStr, pad } from '@/lib/calendar';
 import { icon } from '@/lib/icons';
 import { PLATFORM_LABEL } from '@/lib/publications';
-import type { ClientSummary, PublicationDetail, PublicationFormat, UserLite } from '@/lib/types';
+import type { PublicationDetail, PublicationFormat, UserLite } from '@/lib/types';
 import { AssigneePicker } from '../AssigneePicker';
 import { Dialog } from '../Dialog';
 import { Field } from '../Field';
@@ -21,14 +21,12 @@ const POST_PLATFORMS = ['instagram'];
 export function PublicationDialog({
   publication,
   initialDate,
-  initialClientId,
   onClose,
   onSaved,
 }: {
   publication?: PublicationDetail | null;
   /** yyyy-mm-dd */
   initialDate?: string;
-  initialClientId?: string;
   onClose: () => void;
   onSaved: (p: PublicationDetail) => void;
 }) {
@@ -40,13 +38,11 @@ export function PublicationDialog({
   const [title, setTitle] = useState(publication?.title ?? '');
   const [format, setFormat] = useState<PublicationFormat>(publication?.format ?? 'video');
   const [platforms, setPlatforms] = useState<string[]>(publication?.platforms ?? VIDEO_PLATFORMS);
-  const [clientId, setClientId] = useState(publication?.client?.id ?? initialClientId ?? '');
   const [date, setDate] = useState(sched ? localDateStr(sched) : initialDate ?? localDateStr(new Date()));
   const [time, setTime] = useState(sched ? `${pad(sched.getHours())}:${pad(sched.getMinutes())}` : '10:00');
   const [brief, setBrief] = useState(publication?.brief ?? '');
   const [reviewers, setReviewers] = useState<string[] | null>(publication ? publication.reviewers.filter((r) => r.isActive).map((r) => r.id) : null);
   const [users, setUsers] = useState<UserLite[]>([]);
-  const [clients, setClients] = useState<ClientSummary[]>([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -58,7 +54,6 @@ export function PublicationDialog({
         setReviewers((r) => r ?? u.map((x) => x.id));
       })
       .catch(() => setReviewers((r) => r ?? []));
-    api<ClientSummary[]>('/clients').then(setClients).catch(() => undefined);
   }, []);
 
   function pickFormat(f: PublicationFormat) {
@@ -80,7 +75,6 @@ export function PublicationDialog({
       format,
       platforms,
       scheduledAt: at.toISOString(),
-      clientId: clientId || null,
       brief,
       reviewerIds: reviewers ?? [],
     };
@@ -151,15 +145,6 @@ export function PublicationDialog({
               </div>
             )}
           </fieldset>
-
-          <Field label="Cliente">
-            {(p) => (
-              <select {...p} className="w-full" value={clientId} onChange={(e) => setClientId(e.target.value)}>
-                <option value="">Sin cliente</option>
-                {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            )}
-          </Field>
 
           <div className="grid grid-cols-2 gap-4">
             <Field label="Fecha">

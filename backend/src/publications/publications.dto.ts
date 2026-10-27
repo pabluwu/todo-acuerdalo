@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
 import {
-  ArrayMaxSize, IsArray, IsDateString, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUUID, Max, MaxLength, Min, MinLength, ValidateIf,
+  ArrayMaxSize, IsArray, IsDateString, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUUID, Max, MaxLength, Min, MinLength,
 } from 'class-validator';
 
 export class PublicationQueryDto {
@@ -9,9 +9,6 @@ export class PublicationQueryDto {
 
   @IsOptional() @IsDateString()
   to?: string;
-
-  @IsOptional() @IsUUID()
-  clientId?: string;
 
   @IsOptional() @IsIn(['idea', 'edicion', 'por_publicar', 'publicada', 'cancelada'])
   status?: string;
@@ -41,9 +38,6 @@ export class CreatePublicationDto {
   @IsDateString()
   scheduledAt!: string;
 
-  @IsOptional() @ValidateIf((_o, v) => v !== null) @IsUUID()
-  clientId?: string | null;
-
   @IsOptional() @IsString() @MaxLength(20_000)
   caption?: string;
 
@@ -66,9 +60,6 @@ export class UpdatePublicationDto {
 
   @IsOptional() @IsDateString()
   scheduledAt?: string;
-
-  @IsOptional() @ValidateIf((_o, v) => v !== null) @IsUUID()
-  clientId?: string | null;
 
   @IsOptional() @IsString() @MaxLength(20_000)
   caption?: string;

@@ -104,7 +104,7 @@ export class PublicationsService {
   private async summaries(rows: Publication[], me: Actor) {
     if (rows.length === 0) return [];
     const ids = rows.map((p) => p.id);
-    const [revRows, latestRows, commentRows, clientRows, users] = await Promise.all([
+    const [revRows, latestRows, commentRows, users] = await Promise.all([
       this.dataSource.query(
         `SELECT r.publication_id AS pid, r.user_id AS uid, u.is_active AS active
            FROM publication_reviewers r JOIN users u ON u.id = r.user_id WHERE r.publication_id = ANY($1::uuid[])`,
@@ -119,9 +119,6 @@ export class PublicationsService {
         `SELECT publication_id AS pid, count(*)::int AS n FROM publication_comments WHERE publication_id = ANY($1::uuid[]) GROUP BY publication_id`,
         [ids],
       ) as Promise<{ pid: string; n: number }[]>,
-      this.dataSource.query(`SELECT id, name FROM clients WHERE id = ANY($1::uuid[])`, [rows.map((p) => p.clientId).filter(Boolean)]) as Promise<
-        { id: string; name: string }[]
-      >,
       this.userMap(rows.map((p) => p.createdById)),
     ]);
     const versionIds = latestRows.map((v) => v.id);
@@ -141,7 +138,6 @@ export class PublicationsService {
 
     const latestBy = new Map(latestRows.map((v) => [v.pid, v]));
     const commentsBy = new Map(commentRows.map((c) => [c.pid, c.n]));
-    const clientsBy = new Map(clientRows.map((c) => [c.id, c]));
     const thumbBy = new Map(thumbRows.map((t) => [t.vid, t]));
 
     return rows.map((p) => {
@@ -150,7 +146,6 @@ export class PublicationsService {
       const decisions = latest ? appRows.filter((a) => a.vid === latest.id).map((a) => ({ userId: a.uid, decision: a.decision })) : [];
       const { approved, total } = approvalCounts(revs, decisions);
       const thumb = latest ? thumbBy.get(latest.id) : undefined;
-      const client = p.clientId ? clientsBy.get(p.clientId) : undefined;
       return {
         id: p.id,
         title: p.title,
@@ -158,7 +153,6 @@ export class PublicationsService {
         platforms: p.platforms,
         status: p.status,
         scheduledAt: p.scheduledAt,
-        client: client ? { id: client.id, name: client.name } : null,
         createdBy: this.lite(users, p.createdById),
         latestVersion: latest?.number ?? null,
         approvals: approved,
@@ -176,7 +170,6 @@ export class PublicationsService {
     const qb = this.pubs.createQueryBuilder('p').orderBy('p.scheduledAt', 'ASC').addOrderBy('p.createdAt', 'ASC');
     if (q.from) qb.andWhere('p.scheduledAt >= :from', { from: q.from });
     if (q.to) qb.andWhere('p.scheduledAt < :to', { to: q.to });
-    if (q.clientId) qb.andWhere('p.clientId = :clientId', { clientId: q.clientId });
     if (q.status) qb.andWhere('p.status = :status', { status: q.status });
     if (q.format) qb.andWhere('p.format = :format', { format: q.format });
     const list = await this.summaries(await qb.getMany(), me);
@@ -269,12 +262,6 @@ export class PublicationsService {
 
   // ----------------------------------------------------------- publicaciones
 
-  private async checkClient(clientId: string | null | undefined) {
-    if (!clientId) return;
-    const rows = await this.dataSource.query(`SELECT 1 FROM clients WHERE id = $1`, [clientId]);
-    if (rows.length === 0) throw new BadRequestException('El cliente no existe');
-  }
-
   /** Revisores válidos: solo usuarios activos. Sin lista, todos los activos. */
   private async resolveReviewers(reviewerIds: string[] | undefined): Promise<string[]> {
     if (reviewerIds === undefined) return (await this.users.find({ where: { isActive: true }, select: { id: true } })).map((u) => u.id);
@@ -286,7 +273,6 @@ export class PublicationsService {
     if (!title) throw new BadRequestException('El título es obligatorio');
     const platforms = normalizePlatforms(dto.format, dto.platforms);
     if (!platforms) throw new BadRequestException('Las plataformas no corresponden al formato');
-    await this.checkClient(dto.clientId);
     const reviewerIds = await this.resolveReviewers(dto.reviewerIds);
     const saved = await this.dataSource.transaction(async (m) => {
       const row = await m.getRepository(Publication).save(
@@ -295,7 +281,6 @@ export class PublicationsService {
           format: dto.format,
           platforms,
           scheduledAt: new Date(dto.scheduledAt),
-          clientId: dto.clientId ?? null,
           caption: dto.caption ?? '',
           brief: dto.brief ?? '',
           createdById: actor.id,
@@ -333,11 +318,6 @@ export class PublicationsService {
       changed.push('platforms');
     }
     if (dto.scheduledAt !== undefined) { pub.scheduledAt = new Date(dto.scheduledAt); changed.push('scheduledAt'); }
-    if (dto.clientId !== undefined && dto.clientId !== pub.clientId) {
-      await this.checkClient(dto.clientId);
-      pub.clientId = dto.clientId;
-      changed.push('clientId');
-    }
     if (dto.caption !== undefined && dto.caption !== pub.caption) { pub.caption = dto.caption; changed.push('caption'); }
     if (dto.brief !== undefined && dto.brief !== pub.brief) { pub.brief = dto.brief; changed.push('brief'); }
 
@@ -356,7 +336,7 @@ export class PublicationsService {
       if (changed.length) {
         await m.getRepository(Publication).update(id, {
           title: pub.title, format: pub.format, platforms: pub.platforms, scheduledAt: pub.scheduledAt,
-          clientId: pub.clientId, caption: pub.caption, brief: pub.brief,
+          caption: pub.caption, brief: pub.brief,
         });
       }
     });

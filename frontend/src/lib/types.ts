@@ -387,7 +387,6 @@ export interface PublicationSummary {
   platforms: string[];
   status: PublicationStatus;
   scheduledAt: string;
-  client: { id: string; name: string } | null;
   createdBy: PublicationUser | null;
   latestVersion: number | null;
   approvals: number;

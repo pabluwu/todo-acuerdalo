@@ -21,9 +21,6 @@ export class Publication {
   @Column({ name: 'scheduled_at', type: 'timestamptz' })
   scheduledAt!: Date;
 
-  @Column({ name: 'client_id', type: 'uuid', nullable: true })
-  clientId!: string | null;
-
   @Column({ type: 'text', default: '' })
   caption!: string;
 

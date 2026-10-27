@@ -58,7 +58,6 @@ export function PubRow({ pub, showDate = false }: { pub: PublicationSummary; sho
         <span className="block truncate text-xs tabular-nums text-zinc-600">
           {date && <>{date} · </>}
           {pubMeta(pub)}
-          {pub.client && <> · {pub.client.name}</>}
         </span>
       </span>
       <StatusChip status={pub.status} size="sm" />

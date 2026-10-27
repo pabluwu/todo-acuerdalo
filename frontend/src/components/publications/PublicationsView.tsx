@@ -5,7 +5,7 @@ import esLocale from '@fullcalendar/core/locales/es';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin, { type DateClickArg } from '@fullcalendar/interaction';
 import FullCalendar from '@fullcalendar/react';
-import { BriefcaseBusiness, CalendarDays, ChevronLeft, ChevronRight, List, Megaphone, Plus, UserCheck, Columns3 } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, List, Megaphone, Plus, UserCheck, Columns3 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -15,7 +15,7 @@ import { icon } from '@/lib/icons';
 import { FORMAT_META, PUB_STATUSES, pubMeta, pubStatus, pubTime } from '@/lib/publications';
 import { useToast } from '@/lib/toast';
 import { useMobile } from '@/lib/useMediaQuery';
-import type { ClientSummary, PublicationFormat, PublicationSummary } from '@/lib/types';
+import type { PublicationFormat, PublicationSummary } from '@/lib/types';
 import { FilterPill } from '../FilterPill';
 import { AgendaSkeleton, CalendarSkeleton } from '../Skeletons';
 import { weekStartOf } from '../calendar/AgendaView';
@@ -64,7 +64,6 @@ export function PublicationsView() {
   const month = /^\d{4}-\d{2}/.test(dateParam) && parseLocalDate(`${dateParam.slice(0, 7)}-01`) ? dateParam.slice(0, 7) : monthOf(today);
   const selectedDay = parseLocalDate(dateParam) ? dateParam : month === monthOf(today) ? today : `${month}-01`;
   const format = params.get('format') === 'video' || params.get('format') === 'post' ? (params.get('format') as PublicationFormat) : '';
-  const clientId = params.get('client') ?? '';
   const pendingMine = params.get('pending') === '1';
   // en móvil «Mes» y «Lista» son la misma agenda
   const agenda = mobile ? view !== 'flujo' : view === 'lista';
@@ -81,12 +80,9 @@ export function PublicationsView() {
   // ---- datos ----
   const [items, setItems] = useState<PublicationSummary[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [clients, setClients] = useState<ClientSummary[]>([]);
   const [tick, setTick] = useState(0);
   const [agendaDays, setAgendaDays] = useState(14);
   const [creating, setCreating] = useState<{ date?: string } | null>(null);
-
-  useEffect(() => { api<ClientSummary[]>('/clients').then(setClients).catch(() => undefined); }, []);
 
   const range = useMemo(() => {
     if (mobile && view !== 'flujo') {
@@ -103,12 +99,11 @@ export function PublicationsView() {
     const id = ++reqId.current;
     const q = new URLSearchParams({ from: new Date(fromMs).toISOString(), to: new Date(toMs).toISOString() });
     if (format) q.set('format', format);
-    if (clientId) q.set('clientId', clientId);
     if (pendingMine) q.set('pendingMine', '1');
     api<PublicationSummary[]>(`/publications?${q}`)
       .then((r) => { if (id === reqId.current) { setItems(r); setLoaded(true); } })
       .catch((e) => { if (id === reqId.current) { toast(e.message); setLoaded(true); } });
-  }, [mobile, fromMs, toMs, format, clientId, pendingMine, tick, toast]);
+  }, [mobile, fromMs, toMs, format, pendingMine, tick, toast]);
 
   // lo visible: en escritorio (lista y flujo) solo el mes elegido
   const shown = useMemo(() => {
@@ -123,8 +118,7 @@ export function PublicationsView() {
 
   function open(date?: string) { setCreating({ date }); }
 
-  const clientOptions = useMemo(() => clients.map((c) => ({ id: c.id, label: c.name })), [clients]);
-  const filterCount = (format ? 1 : 0) + (clientId ? 1 : 0) + (pendingMine ? 1 : 0);
+  const filterCount = (format ? 1 : 0) + (pendingMine ? 1 : 0);
 
   // ---- calendario (escritorio) ----
   const createRef = useRef(open);
@@ -200,7 +194,6 @@ export function PublicationsView() {
   const filtersRow = (
     <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 no-scrollbar md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
       <FilterPill icon={Megaphone} label="Formato" options={FORMAT_OPTIONS} value={format} onChange={(v) => update({ format: v })} sheet={!!mobile} />
-      <FilterPill icon={BriefcaseBusiness} label="Cliente" options={clientOptions} value={clientId} onChange={(v) => update({ client: v })} sheet={!!mobile} />
       <button type="button" className="pill" aria-pressed={pendingMine} onClick={() => update({ pending: pendingMine ? null : '1' })}>
         <UserCheck {...icon} /> Esperan mi aprobación
       </button>
@@ -332,7 +325,6 @@ export function PublicationsView() {
       {creating && (
         <PublicationDialog
           initialDate={creating.date}
-          initialClientId={clientId || undefined}
           onClose={() => setCreating(null)}
           onSaved={(p) => { setCreating(null); setTick((t) => t + 1); toast('Idea creada', 'success'); router.push(`/publicaciones/${p.id}`); }}
         />
@@ -366,7 +358,6 @@ function FlowBoard({ items }: { items: PublicationSummary[] }) {
                         <F size={12} strokeWidth={1.5} aria-hidden />
                         {new Date(p.scheduledAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} · {pubMeta(p)}
                       </span>
-                      {p.client && <span className="block truncate text-xs text-zinc-500">{p.client.name}</span>}
                       {p.latestVersion && (p.status === 'edicion' || p.status === 'por_publicar') && <ApprovalBar approvals={p.approvals} total={p.reviewersCount} />}
                     </Link>
                   </li>

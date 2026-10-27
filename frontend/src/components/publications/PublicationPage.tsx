@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, BriefcaseBusiness, CalendarDays, Check, CircleCheck, CircleX, FileQuestion, Pencil, RotateCcw, Trash2 } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Check, CircleCheck, CircleX, FileQuestion, Pencil, RotateCcw, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -254,7 +254,6 @@ export function PublicationPage({ id }: { id: string }) {
       <header className="mb-5 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <span className={chip}><F size={14} strokeWidth={1.5} aria-hidden /> {formatLabel} · {platformsText(pub.platforms)}</span>
-          {pub.client && <Link href={`/clients/${pub.client.id}`} className={`${chip} hover:bg-zinc-900/10`}><BriefcaseBusiness size={14} strokeWidth={1.5} aria-hidden /> {pub.client.name}</Link>}
           <span className={`${chip} tabular-nums`}>
             <CalendarDays size={14} strokeWidth={1.5} aria-hidden />
             <time dateTime={pub.scheduledAt}>{sched.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })} · {sched.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false })}</time>
